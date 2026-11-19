@@ -1,0 +1,102 @@
+rules_version = '2';
+// Règles de sécurité Firestore de l'appli Budget.
+// ⚠️ Ce fichier n'est qu'une COPIE DE RÉFÉRENCE : les règles actives se règlent dans
+// la console Firebase (Firestore Database → Règles → coller → Publier).
+// Avant de publier : remplacer les deux adresses de « donneesDOrigine() » par les
+// e-mails (en minuscules) des deux comptes qui utilisent déjà l'appli.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function connecte() { return request.auth != null; }
+    function monEmail() { return request.auth.token.email.lower(); }
+    function foyer(fid) { return get(/databases/$(database)/documents/foyers/$(fid)); }
+    function membre(fid) {
+      return connecte() && exists(/databases/$(database)/documents/foyers/$(fid))
+        && request.auth.uid in foyer(fid).data.membres;
+    }
+
+    // ===== 1. Données d'origine (le budget créé avant les comptes multiples) =====
+    // Elles restent à leur place (rien n'est déplacé ni copié), lisibles et
+    // modifiables seulement par ces deux adresses.
+    function donneesDOrigine() {
+      return connecte() && monEmail() in ['adresse-1@exemple.fr', 'adresse-2@exemple.fr'];
+    }
+    match /config/{d} { allow read, write: if donneesDOrigine(); }
+    match /depenses/{d} { allow read, write: if donneesDOrigine(); }
+    match /versements/{d} { allow read, write: if donneesDOrigine(); }
+    match /transferts/{d} { allow read, write: if donneesDOrigine(); }
+    match /mois/{d} { allow read, write: if donneesDOrigine(); }
+
+    // ===== 2. Un « foyer » = un budget, partagé par ses membres =====
+    match /foyers/{fid} {
+      allow read: if connecte() && request.auth.uid in resource.data.membres;
+
+      // créer son propre foyer (on en est le seul membre)
+      allow create: if connecte()
+        && request.resource.data.keys().hasOnly(['nom', 'owner', 'membres', 'emails', 'creeLe'])
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.membres == [request.auth.uid]
+        && request.resource.data.emails == [monEmail()]
+        && request.resource.data.nom is string && request.resource.data.nom.size() <= 60;
+
+      allow update: if connecte() && (
+        // un membre renomme le foyer
+        (request.auth.uid in resource.data.membres
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nom'])
+          && request.resource.data.nom is string && request.resource.data.nom.size() <= 60)
+        // le propriétaire retire un autre membre
+        || (request.auth.uid == resource.data.owner
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['membres', 'emails'])
+          && resource.data.membres.toSet().hasAll(request.resource.data.membres.toSet())
+          && resource.data.emails.toSet().hasAll(request.resource.data.emails.toSet())
+          && request.auth.uid in request.resource.data.membres)
+        // un membre (pas le propriétaire) quitte le foyer
+        || (request.auth.uid in resource.data.membres && request.auth.uid != resource.data.owner
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['membres', 'emails'])
+          && request.resource.data.membres.toSet() == resource.data.membres.toSet().difference([request.auth.uid].toSet())
+          && request.resource.data.emails.toSet() == resource.data.emails.toSet().difference([monEmail()].toSet()))
+        // rejoindre un foyer grâce à une invitation à son adresse (adresse vérifiée)
+        || (request.auth.token.email_verified == true
+          && !(request.auth.uid in resource.data.membres)
+          && exists(/databases/$(database)/documents/invitations/$(monEmail()))
+          && get(/databases/$(database)/documents/invitations/$(monEmail())).data.foyer == fid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['membres', 'emails'])
+          && request.resource.data.membres.toSet() == resource.data.membres.toSet().union([request.auth.uid].toSet())
+          && request.resource.data.emails.toSet() == resource.data.emails.toSet().union([monEmail()].toSet())
+          && request.resource.data.membres.size() <= 6)
+      );
+
+      // supprimer son budget : seulement le propriétaire, s'il est seul
+      allow delete: if connecte() && request.auth.uid == resource.data.owner
+        && resource.data.membres.size() == 1;
+
+      // les données du budget : réservées aux membres
+      match /{coll}/{doc} {
+        allow read, write: if membre(fid);
+      }
+    }
+
+    // ===== 3. Invitations : une par adresse e-mail =====
+    match /invitations/{email} {
+      allow read: if connecte() && (monEmail() == email || membre(resource.data.foyer));
+      allow create: if connecte() && email == email.lower()
+        && request.resource.data.keys().hasOnly(['foyer', 'nomFoyer', 'de', 'le'])
+        && request.resource.data.de == monEmail()
+        && membre(request.resource.data.foyer);
+      allow update: if connecte() && membre(resource.data.foyer)
+        && request.resource.data.keys().hasOnly(['foyer', 'nomFoyer', 'de', 'le'])
+        && request.resource.data.de == monEmail()
+        && membre(request.resource.data.foyer);
+      allow delete: if connecte() && (monEmail() == email || membre(resource.data.foyer));
+    }
+
+    // ===== 4. Foyer choisi par chaque utilisateur =====
+    match /users/{uid} {
+      allow read: if connecte() && request.auth.uid == uid;
+      allow write: if connecte() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['foyer'])
+        && membre(request.resource.data.foyer);
+      allow delete: if connecte() && request.auth.uid == uid;
+    }
+  }
+}

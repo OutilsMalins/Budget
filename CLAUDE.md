@@ -1,6 +1,7 @@
 # Budget Clair — récap pour Claude Code
 
 Appli de budget d'un couple (Tani et Lauryne), utilisée sur iPhone. Elle remplace leur ancien fichier Excel.
+Depuis le 19/11/2026, la version page web est **ouverte à tous** : chacun crée son compte et a son propre budget (« foyer »), partageable par invitation.
 Tout est en **un seul fichier HTML** (HTML + CSS + JavaScript, sans framework, sans étape de compilation).
 Toute l'interface est **en français**.
 
@@ -17,27 +18,36 @@ Toute l'interface est **en français**.
   1. modifier `src/budget-clair.html` ;
   2. reconstruire `index.html` avec le script ;
   3. l'utilisateur envoie le fichier sur GitHub.
-- Les données sont personnelles et financières. Ne jamais les mettre dans le code, dans le dépôt ou dans un service externe.
+- Les données sont personnelles et financières. Ne jamais les mettre dans le code, dans le dépôt ou dans un service externe. **Le dépôt est public** : pas de montants réels, pas d'adresses e-mail (les règles Firestore du dépôt gardent des adresses factices).
+- **Ne jamais modifier l'appli factures (`OutilsMalins/factures`) ni la relier à l'appli budget** (demande explicite de l'utilisateur). Les deux applis restent totalement indépendantes.
+- **Ne jamais perdre les données de l'utilisateur.** Toute évolution du format doit rester compatible avec les données existantes (voir « Comptes » : les anciens champs sont toujours lus).
 
 ## Fichiers
 
 ```
 src/budget-clair.html     SOURCE UNIQUE de l'appli (version « artefact Claude », sans <html>/<head>/<body>)
-build/build_firebase.py   fabrique la version page web (Firebase) à partir de la source
-index.html            version page web générée (ne pas modifier à la main)
-apple-touch-icon.png  icône iPhone (180×180, € blanc sur bleu)
+build/build_firebase.py   fabrique la version page web (Firebase, comptes, foyers) à partir de la source
+index.html                version page web générée, à la racine (GitHub Pages) — ne pas modifier à la main
+apple-touch-icon.png      icône iPhone (180×180, € blanc sur bleu)
+firestore.rules           COPIE DE RÉFÉRENCE des règles Firestore (adresses factices : voir Déploiement)
 tests/stub-claude.js      fausse base de données pour tester la source dans un navigateur
-tests/smoke.js            test Playwright : 3 onglets, erreurs JS, boucle de rendu, captures
-tests/fakefb.js           faux Firebase (connexion + Firestore) pour tester index.html
-autres/Mon budget ….html  version « ami » autonome (stockage local), ANCIENNE (n'a pas les derniers ajouts)
+tests/smoke.js            test Playwright : 4 onglets, erreurs JS, boucle de rendu, captures
+tests/comptes.js          comptes multiples : anciennes données = mêmes soldes, CHF, virements, clôture
+tests/rules.test.js       règles Firestore dans l'émulateur (40 cas)
+tests/web.test.js         page web + émulateur : inscription, foyer, invitation, données d'origine (19 vérifications)
 ```
+La version « ami » (`autres/`, stockage local) n'est plus dans le dépôt : la page web ouverte à tous la remplace.
 
 Commandes :
 
 ```bash
 python3 build/build_firebase.py          # src/budget-clair.html -> index.html
-node tests/smoke.js                      # nécessite : npm i -D playwright && npx playwright install chromium
+node tests/smoke.js                      # Playwright (déjà installé dans l'environnement cloud)
+node tests/comptes.js
 node tests/smoke.js sauvegarde.json      # avec une « copie de secours » exportée par l'appli
+cd tests && npm install                  # une fois : émulateur Firebase (Java requis) + SDK
+npm run test:rules                       # règles Firestore
+npm run test:web                         # page web complète (Firebase local servi depuis node_modules)
 ```
 
 Vérification rapide de la syntaxe : extraire les blocs `<script>` dans un fichier `.js`, puis `node --check`.
@@ -54,7 +64,10 @@ Vérification rapide de la syntaxe : extraire les blocs `<script>` dans un fichi
   - SDK « compat » 10.14.1 chargé depuis gstatic ;
   - formule gratuite (Spark).
   - La config Firebase est dans `build_firebase.py`. La clé `apiKey` n'est pas un secret : la sécurité repose sur les règles Firestore.
-- **Règles Firestore :** elles limitent lecture et écriture aux **deux e-mails** du couple. Elles se règlent dans la console Firebase (Firestore → Règles) et ne sont pas dans ce dossier.
+- **Règles Firestore :** copie de référence dans `firestore.rules`. Les règles actives se collent dans la console Firebase (Firestore → Règles → Publier), **en remplaçant les deux adresses factices par les vrais e-mails du couple** (à demander à l'utilisateur, ne jamais les écrire dans le dépôt).
+  - données d'origine (racine : `config`, `depenses`, `versements`, `transferts`, `mois`) : seulement ces deux e-mails ;
+  - `foyers/{id}` + sous-collections : seulement les membres ; `invitations/{email}` ; `users/{uid}` (foyer choisi).
+- **Création de compte :** Firebase Auth e-mail/mot de passe (inscription ouverte). Vérification de l'adresse obligatoire pour rejoindre un foyer par invitation.
 - Sur iPhone, la page est ajoutée à l'écran d'accueil (« Ouvrir comme app web »).
 
 ### 2. Artefact Claude, la version d'origine
@@ -73,10 +86,12 @@ Il prend la source et remplace des morceaux de texte précis. Chaque `rep(a, b)`
   - `ignoreUndefinedProperties` et persistance hors ligne activés ;
   - mêmes appels que dans l'appli : `doc`, `collection`, `where`, `orderBy`, `limit`, `get`, `onSnapshot`, `set`, `update`, `delete`.
 - **Remplace `downloads.save`** par un téléchargement de fichier. Sur iOS, il utilise `navigator.share` avec un fichier.
-- **Ajoute un écran de connexion,** avec un message clair si le compte n'est pas autorisé.
-- **Premier lancement :** propose « Importer une sauvegarde ». Le JSON a la forme `{app:'budget-clair', docs:{"chemin": données}}` et l'import se fait par lots de 400.
-- **Budget vide :** remplace les données de départ venues d'Excel par un budget vide.
-- **Ajoute une carte « Compte » à la fin du Bilan (`compteFbCard`) :** qui est connecté, « 🛟 Copie de secours » (export JSON) et « Se déconnecter ».
+- **Écran de connexion / création de compte / mot de passe oublié.**
+- **Choix du budget (`resoudre`) :** si le compte peut lire `config/main` à la racine → mode « ancien » (données d'origine, préfixe vide). Sinon → foyer (`users/{uid}.foyer`, ou requête `membres array-contains uid`) → préfixe `foyers/<id>/`. Aucun foyer → écran de bienvenue (créer son budget, ou rejoindre via une invitation). Le choix est mémorisé (`localStorage bc_ctx_<uid>`) pour l'ouverture hors ligne.
+- **`dbw`** : enveloppe `doc()` / `collection()` qui ajoute le préfixe. L'appli n'utilise que ces deux appels.
+- **Premier lancement d'un budget vide :** « Commencer un budget vide » ou importer une copie de secours (`{app:'budget-clair', docs:{"chemin": données}}`, lots de 400).
+- **Page Réglages** (`BC_HOOKS` : bouton rond en haut à droite) : compte, vérification d'adresse, foyer (nom, membres, invitations avec message à transmettre, quitter), copie de secours, suppression du compte (mot de passe redemandé ; seul membre → tout le budget est effacé).
+- `window.__BC_EMU = true` (tests seulement) branche l'émulateur Firebase.
 
 ## Architecture de `src/budget-clair.html`
 
@@ -117,14 +132,24 @@ Il prend la source et remplace des morceaux de texte précis. Chaque `rep(a, b)`
   - `reelOf(ligne)` donne le réel d'un poste ;
   - `natureDe(dépense)` dit besoin ou envie : le choix fait sur la dépense passe avant celui du poste.
 
-### Les 3 onglets
+### Comptes et devises (19/11/2026)
+
+- **`config.comptes`** : `[{id, label, banque, devise: EUR|CHF|USD|GBP, kind: courant|especes, archive}]`. Les ids **`compte`** (compte principal, toujours EUR, non supprimable) et **`especes`** sont ceux de l'ancienne version : `report {compte, especes}`, `paiement: carte|especes`, `mode` des revenus et `source` des versements restent valables tels quels.
+- **Compte de chaque opération** : `cptDep(a)` (`a.compte`, sinon `paiement`), `cptRev(r)` (`r.mode` = id du compte), `cptFixe(l)` (`l.compte`), `cptVers(v)` (`v.source`), `tfDe/tfVers(x)` (`x.de/x.vers`, sinon l'ancien `x.sens` retrait/dépôt).
+- **Devises** : le budget reste en euros. Une opération sur un compte en devise garde les deux montants : `montant` (EUR) + `devise` + `montantDevise`. Revenus et prélèvements en devise : `budgetDevise` / `reelDevise`, les euros suivent le taux (`syncEur`). Virement entre devises : `montant` (devise de départ) + `montantVers` (devise d'arrivée, modifiable : c'est ce que la banque annonce).
+- **Taux** : `config.taux[dev] = {v (1 dev = v €), date, source: 'BCE'|'manuel', manuel}`. `majTaux()` interroge api.frankfurter.dev puis api.frankfurter.app (taux de référence BCE). **Pas testé depuis l'environnement cloud (hôte bloqué)** : la saisie manuelle sert de secours.
+- **Soldes** : `soldesComptes()` → par compte : début (`report[id]`) + revenus − prélèvements − dépenses − épargne + virements reçus − envoyés. `totals().totalComptes` = total en euros. Clôture : `report[id]` = solde de chaque compte ; archive `totals.soldes`, `totals.totalComptes`, `snapshot.comptes`.
+- **Virement** (`virementCard`, `state.vir`) : compte → compte (`transferts`), compte → placement (versement), placement → compte (versement négatif, ancien « puiser »).
+
+### Les 4 onglets (+ Réglages en version page web)
 
 - **Mois (`pageSaisie`)**, quatre cartes :
-  - **`compteCard`** : solde du compte et des espèces, avec deux fins de mois estimées (« si plus aucune dépense » et « en dépensant tout le prévu »). Elle affiche aussi « cette semaine », les retards et l'aide pour puiser dans l'épargne.
+  - **`compteCard`** : total disponible sur tous les comptes + un bouton par compte, bouton « Virement », deux fins de mois estimées (« si plus aucune dépense » et « en dépensant tout le prévu », tous comptes), « cette semaine », les retards, « Puiser dans l'épargne » (prépare un virement). Le retrait/dépôt d'espèces et le détail du calcul sont passés dans l'onglet Comptes (virement, et détail par compte).
   - **`renderAchatsCard`** : saisie rapide d'une dépense (Dépense ou Remboursement, Besoin ou Envie, poste proposé automatiquement par `suggestionPoste`, favoris, répartition sur plusieurs postes). La liste des dépenses est repliable et a une recherche, y compris dans tous les mois.
   - **`aCocherCard`** : revenus reçus et prélèvements, cochés automatiquement à leur date par `autoPrelevements`.
   - **`versementsCard`** : l'épargne du mois.
 - **Budget (`pageBudget`)** : cartes repliables (Revenus, Postes avec tri et filtres, Épargne, Investissements avec types et objectif), plus le « Prévisionnel du mois prochain » (`prochainCard`).
+- **Comptes (`pageComptes`)** : virement, liste des comptes (détail, solde du 1er du mois, « solde aujourd'hui » qui recale le report, masquer), virements du mois, taux de change.
 - **Bilan (`pageBilan`)** :
   - bandeau PDF après une clôture ;
   - carte **« 🔍 Analyser mon budget »** ;
@@ -171,14 +196,18 @@ Quatre boutons. Chacun affiche un petit chargement mis en scène (environ 2,5 s,
 - **Pareto dans une section fermée :** sa largeur vaut 0, donc on le redessine à l'ouverture (`b-pareto`).
 - **Ancien tableau qui débordait :** une règle globale `table{min-width:720px}` existe. Mettre `min-width:0` sur les nouveaux tableaux.
 - **Mise en page :** tester à 390 px de large (iPhone).
+- **Style (19/11/2026)** : thème sobre (tokens `:root`, bloc « Style pro » en fin de `<style>`, qui prime sur les règles plus haut). Icônes SVG (`ICON`, `svgI`) dans la barre d'onglets et les boutons ; plus d'émojis décoratifs dans les titres (ceux des noms de postes et des bilans restent : ce sont des données).
+- **Ordre `membres` / `emails` d'un foyer** : même ordre (création, `arrayUnion`, `arrayRemove`) ; « Retirer un membre » s'en sert pour retrouver l'uid.
 
 ## Décisions et demandes en attente
 
 - **Refusé par l'utilisateur :** les courbes mois par mois (idée 6), retirer le tri et les filtres, retirer les options avancées.
 - **Plus tard :** un résumé en haut de l'onglet Mois (idée 3), l'import CSV de la banque (idée 12), le sort du Pareto.
-- **Proposé, pas encore fait :** mettre à jour la version « ami » (`autres/`) avec les derniers ajouts.
+- **Fait le 19/11/2026 :** plusieurs comptes bancaires + virements + CHF ; nouveau style ; ouverture à tous (comptes, foyers, invitations). La version « ami » n'a plus de raison d'être.
+- **Reste à faire pour une ouverture publique :** mentions légales et politique de confidentialité (RGPD) — pas rédigées, à faire relire ; suppression automatique des comptes inactifs (non faite) ; surveiller les quotas Spark.
+- **Pas testé sur un vrai iPhone** ni avec le vrai projet Firebase (tests faits avec l'émulateur).
 - **Peut-être un jour :** une version payante pour d'autres personnes. Il faudrait alors :
-  - **plusieurs comptes**, avec les données sous `users/{uid}/…` et des règles Firestore propres à chaque utilisateur ;
+  - (fait) plusieurs comptes, données par foyer, règles propres à chaque foyer ;
   - **un autre hébergeur**, car GitHub Pages interdit les sites qui vendent un logiciel en ligne ;
   - **la formule payante Firebase (Blaze)** ;
   - **un système de paiement** ;

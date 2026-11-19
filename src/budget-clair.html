@@ -648,7 +648,7 @@
   .btn .i{width:18px; height:18px;}
   .btn-primary:active{filter:brightness(.93);}
   .btn-sm{padding:8px 12px; font-size:13.5px;}
-  .btn-ghost{background:var(--card);}
+  .btn.btn-ghost{background:var(--card); border:1px solid var(--border); color:var(--ink-2);}
   .btn-mini{background:var(--card); color:var(--ink-2); font-weight:600; padding:4px 11px; font-size:12px;}
   .num-input, .text-input{border-color:var(--border); background:var(--card); border-radius:9px; padding:8px 10px;}
   .chip-select{background-color:var(--card); font-weight:600; border-radius:9px; padding:7px 10px; font-size:13px; color:var(--ink);}
@@ -1433,11 +1433,14 @@ function render(){
   var html = '';
 
   /* en-tête commun aux deux pages */
-  html += '<div class="hero"><div><input class="month-edit" id="monthInput" value="'+escapeAttr(d.monthLabel)+'"><div class="sub">'+({saisie:'Vos dépenses et ce qu\'il reste à cocher.', comptes:'Vos comptes, vos virements.', budget:'Votre budget prévu : revenus, postes et placements.', bilan:'Le point sur le mois et l\'historique.'}[state.tab]||'')+'</div></div>'+
-    (state.tab==='bilan' ? '<div class="hero-actions"><button class="btn btn-ghost" id="closeMonthBtn">Clôturer '+escapeAttr(d.monthLabel)+'</button></div>' : '')+'</div>';
+  html += '<div class="hero"><div><input class="month-edit" id="monthInput" value="'+escapeAttr(d.monthLabel)+'"><div class="sub">'+({saisie:'Vos dépenses et ce qu\'il reste à cocher.', comptes:'Vos comptes, vos virements.', reglages:'Votre compte, votre foyer, vos sauvegardes.', budget:'Votre budget prévu : revenus, postes et placements.', bilan:'Le point sur le mois et l\'historique.'}[state.tab]||'')+'</div></div>'+
+    (state.tab==='bilan' ? '<div class="hero-actions"><button class="btn btn-ghost" id="closeMonthBtn">Clôturer '+escapeAttr(d.monthLabel)+'</button></div>' : '')+
+    (window.BC_HOOKS && BC_HOOKS.heroBtn ? BC_HOOKS.heroBtn() : '')+'</div>';
   if(state.confirmClose && state.tab==='bilan') html += closePanel();
 
-  html += ({saisie:pageSaisie, comptes:pageComptes, budget:pageBudget, bilan:pageBilan}[state.tab] || pageSaisie)();
+  /* version page web : une page « Réglages » (compte, foyer, sauvegarde) fournie par BC_HOOKS */
+  var pageReglages = (window.BC_HOOKS && BC_HOOKS.page) ? BC_HOOKS.page : null;
+  html += ({saisie:pageSaisie, comptes:pageComptes, budget:pageBudget, bilan:pageBilan, reglages:pageReglages}[state.tab] || pageSaisie)();
 
   html += '<nav class="tabbar">'+
     tabBtn('saisie', ICON.home, 'Mois')+
@@ -1448,6 +1451,7 @@ function render(){
 
   app.innerHTML = html;
   wireEvents();
+  if(window.BC_HOOKS && BC_HOOKS.wire) BC_HOOKS.wire();
   if(state.tab==='bilan') renderPareto();
 }
 function tabBtn(id, icon, label){

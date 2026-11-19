@@ -1,3 +1,4 @@
 tests/out/
 node_modules/
-*.json.bak
+tests/node_modules/
+*.log
