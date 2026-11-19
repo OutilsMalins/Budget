@@ -796,7 +796,7 @@ document.addEventListener('click', function(ev){
 })();
 </script>
 <script>
-/* ============ Budget Clair — version page web (Firebase) ============ */
+/* ============ Budget Clair ============ */
 
 var MOIS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 function defaultMonthLabel(){
@@ -837,8 +837,8 @@ function kindOptions(sel, cat){
   return T.map(function(k){ return '<option value="'+k.id+'" '+(sel===k.id?'selected':'')+'>'+escHtml(k.label||'(sans nom)')+'</option>'; }).join('')+
          (cat ? '<option value="__new__">➕ Nouveau type…</option>' : '');
 }
-/* Placements de départ : soldes vides (null) tant que vous ne les donnez pas —
-   aucun montant n'est inventé. */
+/* Placements et budget de départ : tout à 0, aucun montant n'est inventé.
+   (Aucune donnée personnelle ne doit être écrite dans ce fichier : il est public.) */
 function defaultEpargnes(){
   return [ {id:'e1', kind:'livretA', label:'Livret A', plateforme:'', debut:null, versements:[], finOverride:null} ];
 }
@@ -1880,7 +1880,7 @@ function revenusCard(){
       '<span class="iamt">'+eur(+r.budget||0)+((+r.reel||0) ? '<small class="'+(ec>=0?'ok':'ko')+'">reçu '+eur(+r.reel)+'</small>' : '')+'</span><span class="ichev">›</span></button>';
     if(open){
       html += '<div class="pl-det">';
-      html += '<label><span>Nom</span><input class="text-input" data-rlabel="'+r.id+'" value="'+escapeAttr(r.label)+'" placeholder="ex. Salaire Tani"></label>';
+      html += '<label><span>Nom</span><input class="text-input" data-rlabel="'+r.id+'" value="'+escapeAttr(r.label)+'" placeholder="ex. Salaire"></label>';
       html += '<label><span>Prévu</span><input type="text" inputmode="decimal" autocomplete="off" class="num-input" style="text-align:right;" data-rbudget="'+r.id+'" value="'+numStr(r.budget)+'"></label>';
       html += '<label><span>Provenance</span><select class="chip-select src-'+r.source+'" data-rsource="'+r.id+'">'+SOURCES.map(function(s2){return '<option value="'+s2.id+'" '+(r.source===s2.id?'selected':'')+'>'+s2.label+'</option>';}).join('')+'</select></label>';
       html += '<label><span>Arrive sur</span><select class="chip-select mode-'+r.mode+'" data-rmode="'+r.id+'">'+MODES_REVENU.map(function(m){return '<option value="'+m.id+'" '+(r.mode===m.id?'selected':'')+'>'+m.label+'</option>';}).join('')+'</select></label>';
