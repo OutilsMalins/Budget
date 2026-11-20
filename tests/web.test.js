@@ -179,7 +179,24 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   await env.withSecurityRulesDisabled(async ctx => { const f = ctx.firestore(); racine2 = (await f.doc('config/main').get()).data(); depRacine = (await f.collection('depenses').get()).size; });
   verif('essai : données d\'origine toujours intactes', racine2.monthLabel === 'Budget d\'origine' && racine2.report.compte === 1234 && !racine2.comptes && depRacine === 0);
 
-  for(const [nom, p] of [['Alice', A], ['Carole', C], ['Bob', B], ['Origine', O], ['Essai', E]]) verif('aucune erreur JS (' + nom + ')', !p.errs.length, p.errs.join(' | '));
+  /* --- bascule : la vraie appli, pour le compte d'origine qui a aussi un portefeuille d'essai --- */
+  const V = await nouvellePage();
+  await V.waitForSelector('#lgEmail');
+  await V.fill('#lgEmail', ORIG); await V.fill('#lgPass', 'motdepasse1'); await V.click('#lgBtn');
+  verif('bascule : s\'ouvre sur le budget d\'origine (« Nous »), pas sur le portefeuille d\'essai', await jusqua(async () => (await V.inputValue('#monthInput').catch(() => '')) === 'Budget d\'origine'));
+  await V.click('#pfBtn');
+  const noms = await V.$$eval('.pf-item b', x => x.map(y => y.textContent));
+  verif('bascule : le menu montre « Nous » et le portefeuille d\'essai', noms.includes('Nous') && noms.length === 2, noms.join(', '));
+  const essaiId = await V.evaluate(() => [...document.querySelectorAll('.pf-item')].find(o => o.querySelector('b').textContent !== 'Nous').getAttribute('data-pfid'));
+  await V.click('.pf-item[data-pfid="' + essaiId + '"]');
+  verif('bascule : ouvrir le portefeuille d\'essai', await jusqua(async () => (await V.$('#pfBtn')) && !(await V.textContent('#pfBtn')).includes('Nous')));
+  await V.click('[data-tab="reglages"]'); await V.waitForSelector('#pfSuppr'); await V.click('#pfSuppr'); await V.click('#pfSupprOk');
+  verif('bascule : portefeuille d\'essai supprimé, retour sur « Nous »', await jusqua(async () => (await V.inputValue('#monthInput').catch(() => '')) === 'Budget d\'origine' && (await V.textContent('#pfBtn')).includes('Nous'), 20000));
+  let resteEssai = true, racine3 = null;
+  await env.withSecurityRulesDisabled(async ctx => { const f = ctx.firestore(); resteEssai = (await f.doc('foyers/' + essaiId).get()).exists; racine3 = (await f.doc('config/main').get()).data(); });
+  verif('bascule : le portefeuille d\'essai a bien disparu, les données d\'origine sont intactes', !resteEssai && racine3.report.compte === 1234);
+
+  for(const [nom, p] of [['Alice', A], ['Carole', C], ['Bob', B], ['Origine', O], ['Essai', E], ['Bascule', V]]) verif('aucune erreur JS (' + nom + ')', !p.errs.length, p.errs.join(' | '));
   await browser.close(); srv.close(); await env.cleanup();
   console.log('\n' + (n - ko) + ' / ' + n + ' vérifications réussies');
   process.exit(ko ? 1 : 0);
