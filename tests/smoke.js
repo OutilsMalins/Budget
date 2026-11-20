@@ -20,7 +20,7 @@ const ROOT = path.join(__dirname, '..');
   await p.addInitScript(s => { window.__initStore = s; }, seed);
   await p.goto('file://' + page); await p.waitForTimeout(1200);
   if (await p.$('#seedBtn')) { await p.click('#seedBtn'); await p.waitForTimeout(800); }
-  for (const tab of ['saisie', 'comptes', 'budget', 'bilan']) {
+  for (const tab of ['saisie', 'comptes', 'budget', 'bilan', 'reglages']) {
     await p.click('[data-tab="' + tab + '"]'); await p.waitForTimeout(500);
     const renders = await p.evaluate(() => new Promise(r => { let c = 0; const o = new MutationObserver(() => c++);
       o.observe(document.getElementById('app'), {childList: true}); setTimeout(() => { o.disconnect(); r(c); }, 1500); }));

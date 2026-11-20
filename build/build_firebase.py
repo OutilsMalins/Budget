@@ -66,7 +66,6 @@ rep("""if(document.readyState==='loading'){ document.addEventListener('DOMConten
 
 EXTRA_CSS = r"""
 <style>
-  .hero{position:relative; padding-right:46px;}
   .prof-btn{position:absolute; top:2px; right:0; width:36px; height:36px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--ink-2); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:0;}
   .prof-btn.on{color:var(--accent); border-color:var(--accent);}
   .prof-btn .i{width:20px; height:20px;}
@@ -399,9 +398,7 @@ function chargerInvites(){
   }).catch(function(){ RG.invites = []; });
 }
 window.BC_HOOKS = {
-  heroBtn: function(){
-    return '<button type="button" class="prof-btn'+(state.tab==='reglages'?' on':'')+'" id="profBtn" aria-label="Réglages" title="Réglages">'+ICON_USER+'</button>';
-  },
+
   page: function(){
     var h = '';
     if(CTX.invitation) h += invitationHtml(CTX.invitation, 'rgInv');
@@ -469,6 +466,7 @@ window.BC_HOOKS = {
       render(); window.scrollTo(0,0);
     };
     if(state.tab!=='reglages') return;
+    if(CTX.mode==='foyer' && RG.invites===null){ RG.invites = []; chargerInvites(); }
     if(CTX.invitation) brancherInvitation(CTX.invitation, 'rgInv', function(){ CTX.invitation = null; render(); });
     function msg(id, t, k){ var m = $(id); if(m){ m.className = 'rg-msg '+(k||''); m.textContent = t; } }
     var o = $('rgOut'); if(o) o.onclick = function(){ auth.signOut(); };

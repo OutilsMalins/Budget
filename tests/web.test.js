@@ -88,7 +88,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   verif('données d\'origine intactes', racine && racine.monthLabel === 'Budget d\'origine' && racine.report.compte === 1234);
 
   /* --- Alice invite Carole --- */
-  await A.click('#profBtn'); await A.waitForSelector('#rgInvEmail');
+  await A.click('[data-tab="reglages"]'); await A.waitForSelector('#rgInvEmail');
   await A.fill('#rgInvEmail', 'Carole@Test.fr'); await A.click('#rgInvOk');
   verif('Alice : message d\'invitation prêt', await jusqua(async () => (await A.textContent('body')).includes('carole@test.fr') && !!(await A.$('.invit-box'))));
   await A.screenshot({path: path.join(out, 'web-reglages.png'), fullPage: true});
@@ -102,7 +102,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   verif('Carole : e-mail de vérification envoyé', await verifierEmail('carole@test.fr'));
   await C.click('#bvInvOk');
   verif('Carole : rejoint et voit la dépense d\'Alice', await jusqua(async () => { const b = await C.$('[data-tab="saisie"]'); if(!b) return false; await C.evaluate(() => { state.sec = Object.assign(state.sec||{}, {deplist: true}); render(); }); return (await C.textContent('body')).includes('Boulangerie'); }, 15000));
-  await C.click('#profBtn');
+  await C.click('[data-tab="reglages"]');
   verif('Carole : 2 membres affichés', await jusqua(async () => { const t = await C.textContent('body'); return t.includes('alice@test.fr') && t.includes('carole@test.fr'); }));
 
   /* --- Bob : rien à voir --- */
@@ -131,7 +131,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   verif('compte d\'origine : budget d\'origine ouvert', await jusqua(async () => (await O.inputValue('#monthInput').catch(() => '')) === 'Budget d\'origine'));
   await O.click('[data-tab="comptes"]');
   verif('compte d\'origine : solde du compte repris (1 234 €)', await jusqua(async () => (await O.textContent('body')).replace(/\s/g, '').includes('1234,00€')));
-  await O.click('#profBtn');
+  await O.click('[data-tab="reglages"]');
   verif('compte d\'origine : pas d\'invitation possible', await jusqua(async () => (await O.textContent('body')).includes('Budget d\'origine') && !(await O.$('#rgInvEmail'))));
 
   /* --- version d'essai : le compte d'origine n'y voit PAS les données d'origine --- */

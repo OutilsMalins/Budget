@@ -33,6 +33,7 @@ apple-touch-icon.png      icône iPhone (180×180, € blanc sur bleu)
 firestore.rules           COPIE DE RÉFÉRENCE des règles Firestore (adresses factices : voir Déploiement)
 tests/stub-claude.js      fausse base de données pour tester la source dans un navigateur
 tests/smoke.js            test Playwright : 4 onglets, erreurs JS, boucle de rendu, captures
+tests/auto.js             automatismes, virements programmés, suggestions, chèques
 tests/comptes.js          comptes multiples : anciennes données = mêmes soldes, CHF, virements, clôture
 tests/rules.test.js       règles Firestore dans l'émulateur (40 cas)
 tests/web.test.js         page web + émulateur : inscription, foyer, invitation, import, données d'origine, version d'essai (27 vérifications)
@@ -46,6 +47,7 @@ python3 build/build_firebase.py --essai  # src/budget-clair.html -> essai/index.
 python3 build/build_firebase.py          # -> index.html : SEULEMENT le jour où l'utilisateur valide la bascule
 node tests/smoke.js                      # Playwright (déjà installé dans l'environnement cloud)
 node tests/comptes.js
+node tests/auto.js
 node tests/smoke.js sauvegarde.json      # avec une « copie de secours » exportée par l'appli
 cd tests && npm install                  # une fois : émulateur Firebase (Java requis) + SDK
 npm run test:rules                       # règles Firestore
@@ -151,7 +153,20 @@ Il prend la source et remplace des morceaux de texte précis. Chaque `rep(a, b)`
 - **Soldes** : `soldesComptes()` → par compte : début (`report[id]`) + revenus − prélèvements − dépenses − épargne + virements reçus − envoyés. `totals().totalComptes` = total en euros. Clôture : `report[id]` = solde de chaque compte ; archive `totals.soldes`, `totals.totalComptes`, `snapshot.comptes`.
 - **Virement** (`virementCard`, `state.vir`) : compte → compte (`transferts`), compte → placement (versement), placement → compte (versement négatif, ancien « puiser »).
 
-### Les 4 onglets (+ Réglages en version page web)
+### Automatismes, suggestions, chèques (20/11/2026)
+
+L'utilisateur veut un maximum d'automatismes (« ça fait pro »), des analyses concrètes et réelles, des suggestions. **Tout doit venir des saisies réelles** (aucun chiffre ni conseil inventé).
+
+- **`config.auto`** : `{prelev, revenus, sugg}` (absent = activé), réglé dans Réglages → Automatismes. `autoOn(k)`.
+- **Revenus à leur date** : `r.jour`, cochés « reçu » par `autoPrelevements` (une fois par mois : `autoMois`, `autoCoche`), comme les prélèvements.
+- **Virements programmés** : `config.programmes = [{id, de, vers, montant, jour, note, actif, dernierMois}]`. `autoProgrammes()` les enregistre le jour venu avec un **identifiant fixe** `p<id>_<AAAA-MM>` (jamais en double, même sur deux téléphones) ; `dernierMois` empêche de refaire un virement supprimé. Créés depuis Réglages, ou par la case « Répéter chaque mois » du virement (ce mois-ci compte comme fait). Un jour déjà passé à la création → départ le mois suivant.
+- **`enregistrerMouvement(o)`** : un seul chemin pour tous les virements (formulaire, programmés).
+- **Suggestions** (`suggestions(t)`, carte en haut de l'onglet Mois) : mois terminé, découvert, taux manquant, doublon possible (même libellé + montant à ±1 jour), dépenses sans poste, chèque en attente depuis 15 j, épargne prévue pas versée (après le milieu du mois ou quand tous les revenus sont reçus), surplus en fin de mois (8 derniers jours), virement refait les 2 derniers mois → « Programmer », revenus/prélèvements sans jour. Chacune a un bouton d'action et peut être masquée pour le mois (`localStorage bc_sug_<mois>`).
+- **Chiffres du mois** (`chiffresCard`, en tête du Bilan, sans attendre de mois complet) : dépenses courantes, moyenne par jour, nombre d'achats, comparaison à la même date le mois précédent, 5 plus grosses dépenses, achats par poste (barres), par compte, jour de la semaine le plus dépensier (dès 10 achats).
+- **Chèques** : dépense ou remboursement avec `cheque: {num, encaisse, encaisseLe}` (et `paiement: 'cheque'`). Compté dans le budget tout de suite ; **le solde du compte ne baisse qu'à l'encaissement** ; les fins de mois le retirent déjà (`aVenir().cheques`). À la clôture, les chèques non encaissés passent dans `config.chequesReport` et baissent le solde le jour où on les marque encaissés (`encaisserCheque`).
+- **Onglet Réglages** (5ᵉ onglet, `pageReglagesBase`) : Automatismes, Apparence, puis (version page web) compte, foyer, copie de secours, suppression.
+
+### Les 5 onglets
 
 - **Mois (`pageSaisie`)**, quatre cartes :
   - **`compteCard`** : total disponible sur tous les comptes + un bouton par compte, bouton « Virement », deux fins de mois estimées (« si plus aucune dépense » et « en dépensant tout le prévu », tous comptes), « cette semaine », les retards, « Puiser dans l'épargne » (prépare un virement). Le retrait/dépôt d'espèces et le détail du calcul sont passés dans l'onglet Comptes (virement, et détail par compte).
@@ -206,7 +221,8 @@ Quatre boutons. Chacun affiche un petit chargement mis en scène (environ 2,5 s,
 - **Pareto dans une section fermée :** sa largeur vaut 0, donc on le redessine à l'ouverture (`b-pareto`).
 - **Ancien tableau qui débordait :** une règle globale `table{min-width:720px}` existe. Mettre `min-width:0` sur les nouveaux tableaux.
 - **Mise en page :** tester à 390 px de large (iPhone).
-- **Style (19/11/2026)** : thème sobre (tokens `:root`, bloc « Style pro » en fin de `<style>`, qui prime sur les règles plus haut). Icônes SVG (`ICON`, `svgI`) dans la barre d'onglets et les boutons ; plus d'émojis décoratifs dans les titres (ceux des noms de postes et des bilans restent : ce sont des données).
+- **Styles au choix (20/11/2026)** : 5 styles (`THEMES_UI` : a Bleu-violet par défaut, b Nuit, c Corail, d Émeraude, e Graphite et or), choisis dans Réglages → Apparence (version Claude : en bas du Bilan), gardés par téléphone (`localStorage bc_theme`), appliqués par `<html data-theme>`. La carte principale y devient une « carte bancaire » colorée. L'utilisateur veut une appli **simple et qui donne envie** : peu de texte visible, les explications derrière ⓘ.
+- **Style de base (19/11/2026)** : thème sobre (tokens `:root`, bloc « Style pro » en fin de `<style>`, qui prime sur les règles plus haut). Icônes SVG (`ICON`, `svgI`) dans la barre d'onglets et les boutons ; plus d'émojis décoratifs dans les titres (ceux des noms de postes et des bilans restent : ce sont des données).
 - **Ordre `membres` / `emails` d'un foyer** : même ordre (création, `arrayUnion`, `arrayRemove`) ; « Retirer un membre » s'en sert pour retrouver l'uid.
 
 ## Décisions et demandes en attente
