@@ -167,6 +167,14 @@ L'utilisateur veut un maximum d'automatismes (« ça fait pro »), des analyses 
 - **Chèques** : dépense ou remboursement avec `cheque: {num, encaisse, encaisseLe}` (et `paiement: 'cheque'`). Compté dans le budget tout de suite ; **le solde du compte ne baisse qu'à l'encaissement** ; les fins de mois le retirent déjà (`aVenir().cheques`). À la clôture, les chèques non encaissés passent dans `config.chequesReport` et baissent le solde le jour où on les marque encaissés (`encaisserCheque`).
 - **Onglet Réglages** (5ᵉ onglet, `pageReglagesBase`) : Automatismes, Apparence, puis (version page web) compte, foyer, copie de secours, suppression.
 
+### Portefeuilles (20/11/2026, version page web)
+
+Un seul identifiant, plusieurs **portefeuilles** (= foyers), par ex. « Moi » (à soi seul) et « Nous » (partagé). Les membres d'un portefeuille ne voient pas les autres (règles Firestore).
+- `listerPortefeuilles` : « Nous » = données d'origine (si le compte y a accès, jamais en version d'essai) + les foyers dont on est membre. Choix mémorisé par téléphone (`bc_pf_<uid>`, `bc_pf_essai_<uid>`) et dans `users/{uid}.foyer`. Changer = mémoriser puis recharger la page.
+- Sélecteur en haut à droite (`BC_HOOKS.heroBtn`, `#pfSel`, « ＋ Nouveau portefeuille… »), carte « Portefeuilles » en tête des Réglages (`BC_HOOKS.pageHaut`) : ouvrir, créer (noms proposés « Moi », « Nous »).
+- **Virement entre portefeuilles** : options `pf:<portefeuille>:<compte>` dans le virement (comptes des autres portefeuilles lus au lancement : `BC_HOOKS.autresComptes`). Noté des deux côtés avec le même identifiant : ici `{de, vers:'ext', ext:{pf, nom, compte, compteLabel, devise}}`, là-bas `{de:'ext', vers, montantVers}` (écrit par `BC_HOOKS.ecrireAutre`, au mois en cours de l'autre portefeuille). Pas avec un placement. Supprimer un côté ne supprime pas l'autre.
+- ⚠️ L'ancienne appli (racine) ne connaît pas `de:'ext'` : ne pas écrire de virement entre portefeuilles dans les données d'origine tant qu'elle sert encore (la version d'essai ne les touche pas).
+
 ### Les 5 onglets
 
 - **Mois (`pageSaisie`)**, quatre cartes :

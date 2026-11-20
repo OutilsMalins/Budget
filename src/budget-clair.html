@@ -37,6 +37,7 @@
   #app{max-width:980px; margin:0 auto; padding:20px 16px 60px;}
   h1,h2,h3{margin:0; font-weight:700;}
   .hero{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
+  .hero > div:first-child{min-width:0; max-width:calc(100% - 150px);}
   .hero h1{font-size:22px; letter-spacing:-0.01em;}
   .hero .sub{color:var(--ink-2); font-size:13px; margin-top:2px;}
   .month-edit{border:none; background:transparent; color:var(--ink); font-size:22px; font-weight:700; font-family:inherit; letter-spacing:-0.01em; border-bottom:2px dashed transparent; padding:0; min-width:60px;}
@@ -1381,8 +1382,18 @@ function cptDep(a){ return cptOk(a.compte || (a.paiement==='especes' ? 'especes'
 function cptRev(r){ return cptOk(r.mode || 'compte'); }
 function cptFixe(l){ return cptOk(l.compte || 'compte'); }
 function cptVers(v){ return cptOk(v.source || 'compte'); }
-function tfDe(x){ return cptOk(x.de || (x.sens==='depot' ? 'especes' : 'compte')); }
-function tfVers(x){ return cptOk(x.vers || (x.sens==='depot' ? 'compte' : 'especes')); }
+function tfDe(x){ return x.de==='ext' ? 'ext' : cptOk(x.de || (x.sens==='depot' ? 'especes' : 'compte')); }
+function tfVers(x){ return x.vers==='ext' ? 'ext' : cptOk(x.vers || (x.sens==='depot' ? 'compte' : 'especes')); }
+/* ---------- autres portefeuilles (version page web) : « pf:<portefeuille>:<compte> » ---------- */
+function estPf(id){ return String(id).indexOf('pf:')===0; }
+function autresPortefeuilles(){ return (window.BC_HOOKS && BC_HOOKS.autresComptes) ? (BC_HOOKS.autresComptes() || []) : []; }
+function pfCompte(id){
+  var p = String(id).split(':'); if(p[0]!=='pf') return null;
+  var P = autresPortefeuilles().find(function(x){ return x.pf===p[1]; }); if(!P) return null;
+  var c = (P.comptes||[]).find(function(x){ return x.id===p[2]; }); if(!c) return null;
+  return {pf:P.pf, nom:P.nom, compte:c.id, label:c.label||'Compte', devise:c.devise||'EUR'};
+}
+function extLabel(e){ return e ? ((e.nom||'Autre portefeuille')+' · '+(e.compteLabel||'compte')) : 'Autre portefeuille'; }
 /* taux : 1 unité de devise = v euros */
 function tauxDe(dev, d){
   if(!dev || dev==='EUR') return 1;
@@ -1407,6 +1418,7 @@ function montantPour(o, champEur, champDev, dev){
 }
 function tfMontantVers(x){
   if(isSet(x.montantVers)) return +x.montantVers;
+  if(x.de==='ext' || x.vers==='ext') return +x.montant||0;
   var a = devDe(tfDe(x)), b = devDe(tfVers(x));
   return a===b ? (+x.montant||0) : depuisEur(versEur(+x.montant||0, a), b);
 }
@@ -1628,7 +1640,7 @@ function autoPrelevements(){
   }
 }
 /* ---------- virements programmés : faits tout seuls le jour prévu, une fois par mois ---------- */
-function mouvementValide(id){ return String(id).indexOf('ep:')===0 ? !!state.data.epargnes.find(function(e){ return 'ep:'+e.id===id; }) : !!compteById(id); }
+function mouvementValide(id){ if(estPf(id)) return !!pfCompte(id); return String(id).indexOf('ep:')===0 ? !!state.data.epargnes.find(function(e){ return 'ep:'+e.id===id; }) : !!compteById(id); }
 function autoProgrammes(){
   var d = state.data, j = joursRestants(); if(j.etat==='futur' || !state.db) return;
   var today = j.etat==='fini' ? 99 : new Date().getDate(), faits = [];
@@ -1649,6 +1661,26 @@ function autoProgrammes(){
 function enregistrerMouvement(o){
   var de = o.de, ve = o.vers, m = r2(o.montant);
   if(!(m>0) || de===ve) return false;
+  if(estPf(de) || estPf(ve)){
+    if((estPf(de) && estPf(ve)) || String(de).indexOf('ep:')===0 || String(ve).indexOf('ep:')===0) return false;
+    var X = pfCompte(estPf(de) ? de : ve), moi = (BC_HOOKS.pfActuel && BC_HOOKS.pfActuel()) || {id:'', nom:''};
+    if(!X) return false;
+    var dA = virDev(de), dB = virDev(ve), rc = dA===dB ? m : r2(o.recu!=null ? o.recu : depuisEur(versEur(m, dA), dB));
+    var id = o.id || newId('t'), date = o.date || todayISO(), note = String(o.note||'').trim();
+    var ici, labas;
+    if(estPf(ve)){
+      ici = {date:date, de:de, vers:'ext', montant:m, ext:{pf:X.pf, nom:X.nom, compte:X.compte, compteLabel:X.label, devise:X.devise}};
+      labas = {date:date, de:'ext', vers:X.compte, montant:rc, montantVers:rc, ext:{pf:moi.id, nom:moi.nom, compte:de, compteLabel:cptLabel(de), devise:dA}};
+    } else {
+      ici = {date:date, de:'ext', vers:ve, montant:m, montantVers:rc, ext:{pf:X.pf, nom:X.nom, compte:X.compte, compteLabel:X.label, devise:X.devise}};
+      labas = {date:date, de:X.compte, vers:'ext', montant:m, ext:{pf:moi.id, nom:moi.nom, compte:ve, compteLabel:cptLabel(ve), devise:dB}};
+    }
+    if(note){ ici.note = note; labas.note = note; }
+    if(o.auto){ ici.auto = true; labas.auto = true; }
+    trans.add(ici, id);
+    BC_HOOKS.ecrireAutre(X.pf, labas, id);
+    return true;
+  }
   var epA = String(de).indexOf('ep:')===0, epB = String(ve).indexOf('ep:')===0;
   if(epA && epB) return false;
   var da = virDev(de), db = virDev(ve);
@@ -2024,8 +2056,8 @@ function compteCard(t){
 
 /* ================= PAGE RÉGLAGES ================= */
 function pageReglagesBase(){
-  var web = (window.BC_HOOKS && BC_HOOKS.page) ? BC_HOOKS.page() : '';
-  return automatismesCard() + themeCard() + web;
+  var H = window.BC_HOOKS || {};
+  return (H.pageHaut ? H.pageHaut() : '') + automatismesCard() + themeCard() + (H.page ? H.page() : '');
 }
 function interrupteur(cle, titre, sous){
   return '<label class="sw-row"><span><b>'+titre+'</b><em>'+sous+'</em></span><input type="checkbox" class="sw" data-auto="'+cle+'"'+(autoOn(cle)?' checked':'')+'></label>';
@@ -2197,14 +2229,20 @@ function virOptions(sel){
     var E = state.data.epargnes.filter(function(e){ return catOf(e)===g[0]; });
     if(E.length) h += '<optgroup label="'+g[1]+'">'+E.map(function(e){ return '<option value="ep:'+escapeAttr(e.id)+'" '+(('ep:'+e.id)===sel?'selected':'')+'>'+escHtml(e.label||'(sans nom)')+'</option>'; }).join('')+'</optgroup>';
   });
+  autresPortefeuilles().forEach(function(P){
+    var C = (P.comptes||[]).filter(function(c){ return !c.archive && c.kind!=='especes'; });
+    if(C.length) h += '<optgroup label="Portefeuille « '+escapeAttr(P.nom)+' »">'+C.map(function(c){ var v = 'pf:'+P.pf+':'+c.id; return '<option value="'+escapeAttr(v)+'" '+(v===sel?'selected':'')+'>'+escHtml(P.nom+' · '+(c.label||'Compte'))+((c.devise||'EUR')!=='EUR'?' ('+c.devise+')':'')+'</option>'; }).join('')+'</optgroup>';
+  });
   return h;
 }
-function virDev(id){ return String(id).indexOf('ep:')===0 ? 'EUR' : devDe(id); }
+function virDev(id){ if(estPf(id)){ var x = pfCompte(id); return x ? x.devise : 'EUR'; } return String(id).indexOf('ep:')===0 ? 'EUR' : devDe(id); }
 function virLabel(id){
+  if(estPf(id)){ var x = pfCompte(id); return x ? x.nom+' · '+x.label : 'Autre portefeuille'; }
   if(String(id).indexOf('ep:')===0){ var e = state.data.epargnes.find(function(x){ return 'ep:'+x.id===id; }); return e ? (e.label||'(sans nom)') : 'Placement'; }
   return cptLabel(id);
 }
 function virSolde(id, S){
+  if(estPf(id)) return null;
   if(String(id).indexOf('ep:')===0){ var e = state.data.epargnes.find(function(x){ return 'ep:'+x.id===id; }); if(!e) return null; var v = catOf(e)==='invest' ? investTotal(e) : epFin(e); return v==null ? 0 : v; }
   return S[id] ? S[id].solde : null;
 }
@@ -2239,6 +2277,7 @@ function virementCard(t){
     var dv = da!=='EUR' ? da : db;
     h += '<p class="hint-line">'+(tauxManquant(dv) ? '<b style="color:var(--warning);">Taux '+dv+' inconnu</b> : indiquez-le plus bas, ou tapez le montant qui arrive.' : 'Calculé avec le taux de référence (1 '+dv+' = '+numStr4(tauxDe(dv))+' €). Votre banque applique son propre taux et ses frais : corrigez « Arrive » avec le montant qu\'elle indique.')+'</p>';
   }
+  if(estPf(v.de) || estPf(v.vers)) h += '<p class="hint-line">Virement entre portefeuilles : il sera noté dans les deux. Les autres membres de l\'autre portefeuille ne voient que ce virement, pas vos comptes.</p>';
   if(m>0 && v.de!==v.vers){
     var sa = virSolde(v.de, S), sb = virSolde(v.vers, S);
     h += '<div class="tf-apres">Après : '+escHtml(virLabel(v.de))+' <b>'+(sa==null?'—':money(sa - m, da))+'</b> · '+escHtml(virLabel(v.vers))+' <b>'+(sb==null?'—':money(sb + recu, db))+'</b></div>';
@@ -2312,7 +2351,11 @@ function compteDetail(c, o){
 /* tous les mouvements entre comptes et placements du mois */
 function mouvementsListe(){
   var L = [];
-  trans.docs.forEach(function(x){ L.push({key:'tr:'+x.id, date:x.date, de:tfDe(x), vers:tfVers(x), m:+x.montant||0, devA:devDe(tfDe(x)), recu:tfMontantVers(x), devB:devDe(tfVers(x)), note:x.note||''}); });
+  trans.docs.forEach(function(x){
+    var de = tfDe(x), ve = tfVers(x), ex = x.ext || null;
+    L.push({key:'tr:'+x.id, date:x.date, de:de, vers:ve, labelDe: de==='ext' ? extLabel(ex) : null, labelVers: ve==='ext' ? extLabel(ex) : null,
+      m:+x.montant||0, devA: de==='ext' ? ((ex&&ex.devise)||'EUR') : devDe(de), recu:tfMontantVers(x), devB: ve==='ext' ? ((ex&&ex.devise)||'EUR') : devDe(ve), note:x.note||''});
+  });
   state.data.epargnes.forEach(function(e){ (e.versements||[]).forEach(function(v){
     var m = +v.montant||0, src = cptVers(v), dv = devDe(src), md = montantPour(v,'montant','montantDevise', dv);
     if(m>=0) L.push({key:'v:'+v.id, date:v.date, de:src, vers:'ep:'+e.id, m:md, devA:dv, recu:m, devB:'EUR', note:v.note||''});
@@ -2326,7 +2369,7 @@ function mouvementsCard(){
     if(!L.length) return '<p class="hint-line">Aucun virement ce mois-ci.</p>';
     return '<div class="tf-list">'+L.map(function(x){
       var armed = state.armedDelete===x.key;
-      return '<div class="tf-item"><span class="tf-txt"><b>'+escHtml(virLabel(x.de))+' → '+escHtml(virLabel(x.vers))+'</b><em>'+frDate(x.date)+(x.note?' · '+escHtml(x.note):'')+(x.devA!==x.devB?' · arrivé : '+money(x.recu, x.devB):'')+'</em></span><b>'+money(x.m, x.devA)+'</b>'+
+      return '<div class="tf-item"><span class="tf-txt"><b>'+escHtml(x.labelDe||virLabel(x.de))+' → '+escHtml(x.labelVers||virLabel(x.vers))+'</b><em>'+frDate(x.date)+(x.note?' · '+escHtml(x.note):'')+(x.devA!==x.devB?' · arrivé : '+money(x.recu, x.devB):'')+'</em></span><b>'+money(x.m, x.devA)+'</b>'+
         (armed ? '<span class="tf-confirm"><button class="btn-mini danger" data-delok="'+x.key+'">Supprimer</button><button class="btn-mini" data-delno="1">Non</button></span>'
                : '<button class="del-btn" data-del="'+x.key+'" title="Supprimer" aria-label="Supprimer">'+ICON.trash+'</button>')+'</div>';
     }).join('')+'</div>';
@@ -4585,6 +4628,7 @@ function wireEvents(){
       if(v.de===v.vers){ toast('Choisissez deux comptes différents.', 'bad'); return; }
       var epA = String(v.de).indexOf('ep:')===0, epB = String(v.vers).indexOf('ep:')===0;
       if(epA && epB){ toast('Entre deux placements : notez un retrait vers un compte, puis un versement.', 'bad'); return; }
+      if((estPf(v.de) || estPf(v.vers)) && (epA || epB || (estPf(v.de) && estPf(v.vers)))){ toast('Entre deux portefeuilles : choisissez un compte de chaque côté.', 'bad'); return; }
       var da = virDev(v.de), db = virDev(v.vers);
       var recu = da===db ? m : r2(v.recuManuel ? parseAmount(v.recu) : virRecuAuto(v));
       if(!(recu>0)){ if(vR){ vR.focus(); vR.classList.add('field-error'); } return; }
