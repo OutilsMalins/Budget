@@ -14,6 +14,7 @@ Toute l'interface est **en français**.
   - les « options avancées » de l'onglet Mois ;
   - le Pareto (il a dit « on verra plus tard »).
 - **L'utilisateur n'est pas développeur.** Expliquer simplement, étape par étape, en français.
+- **Redonner les adresses à chaque réponse** (demande de l'utilisateur) : version d'essai https://outilsmalins.github.io/Budget/essai/ ; ancienne appli https://outilsmalins.github.io/Budget/ .
 - **Toute modification de l'appli doit aller dans les DEUX versions** (voir Déploiement) :
   1. modifier `src/budget-clair.html` ;
   2. reconstruire `index.html` avec le script ;
