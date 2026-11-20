@@ -88,6 +88,12 @@ EXTRA_CSS = r"""
   .invit-box{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.5; white-space:pre-line; margin-top:8px;}
   .danger-zone{border-color:#f1c9c4;}
   .btn-danger{background:var(--critical); color:#fff;}
+  .pf-sel{position:absolute; top:4px; right:0; display:inline-flex; align-items:center; gap:4px; max-width:46%; padding:5px 10px 5px 9px; border-radius:100px; background:var(--card); border:1px solid var(--line); color:var(--accent); box-shadow:var(--shadow);}
+  .pf-sel .i{width:17px; height:17px; flex:0 0 auto;}
+  .pf-sel::after{content:'▾'; color:var(--ink-muted); font-size:12px; margin-left:2px;}
+  .pf-sel select{border:0; background:transparent; color:var(--ink); font:600 14px -apple-system, system-ui, sans-serif; max-width:100%; min-width:0; padding:0 2px; -webkit-appearance:none; appearance:none; text-overflow:ellipsis;}
+  @media (max-width:700px){ .pf-sel select{font-size:16px !important;} }
+  .hero{position:relative;}
   .essai-bandeau{position:sticky; top:0; z-index:30; background:#fdf3e1; color:#7a4a00; font-size:12.5px; font-weight:600; text-align:center; padding:6px 10px calc(6px); border-bottom:1px solid #f1dcb5;}
 </style>
 """
@@ -230,19 +236,59 @@ function lireInvitation(u){
   var em = emailDe(u); if(!em) return Promise.resolve(null);
   return fdb.doc('invitations/'+em).get().then(function(d){ return d.exists ? d.data() : null; }).catch(function(){ return null; });
 }
-function resoudre(u){
-  if(ESSAI) return chercherFoyer(u).then(function(f){ return f ? {mode:'foyer', base:'foyers/'+f.id+'/', foyerId:f.id} : {mode:'aucun'}; });
-  /* 1. les données d'origine (racine) : seulement pour les comptes autorisés par les règles */
-  return fdb.doc('config/main').get().then(function(){ return {mode:'ancien', base:''}; }, function(err){
-    if(!(err && err.code==='permission-denied')){
-      var m = memoCtx(u); if(m) return m;   /* hors ligne : dernier choix connu */
-      throw err;
-    }
-    /* 2. un foyer dont on est membre */
-    return chercherFoyer(u).then(function(f){
-      return f ? {mode:'foyer', base:'foyers/'+f.id+'/', foyerId:f.id} : {mode:'aucun'};
-    });
+/* portefeuille choisi sur ce téléphone : 'ancien' (données d'origine) ou l'id d'un foyer */
+function choixKey(u){ return (ESSAI ? 'bc_pf_essai_' : 'bc_pf_')+u.uid; }
+function memoChoix(u, id){ try{ if(id===undefined) return localStorage.getItem(choixKey(u)); localStorage.setItem(choixKey(u), id); }catch(e){ return null; } }
+function listerPortefeuilles(u){
+  var L = [];
+  var pAncien = ESSAI ? Promise.resolve(false) : fdb.doc('config/main').get().then(function(){ return true; }, function(err){ if(err && err.code==='permission-denied') return false; throw err; });
+  return pAncien.then(function(ancien){
+    if(ancien) L.push({id:'ancien', nom:'Nous', base:''});
+    return fdb.collection('foyers').where('membres','array-contains',u.uid).limit(20).get();
+  }).then(function(qs){
+    qs.docs.slice().sort(function(a,b){ return String(a.data().creeLe||'').localeCompare(String(b.data().creeLe||'')); })
+      .forEach(function(d){ L.push({id:d.id, nom:d.data().nom||'Portefeuille', base:'foyers/'+d.id+'/', membres:(d.data().membres||[]).length}); });
+    return L;
   });
+}
+function resoudre(u){
+  return listerPortefeuilles(u).then(function(L){
+    CTX.liste = L;
+    if(!L.length) return {mode:'aucun'};
+    var choix = memoChoix(u), P = L.find(function(x){ return x.id===choix; });
+    if(P) return P;
+    return fdb.doc('users/'+u.uid).get().then(function(s2){ var f = s2.exists && s2.data().foyer; return L.find(function(x){ return x.id===f; }) || L[0]; }, function(){ return L[0]; });
+  }).then(function(P){
+    if(P.mode==='aucun') return P;
+    return P.id==='ancien' ? {mode:'ancien', base:'', pfId:'ancien'} : {mode:'foyer', base:P.base, foyerId:P.id, pfId:P.id};
+  }, function(err){
+    var m = memoCtx(u); if(m) return m;   /* hors ligne : dernier choix connu */
+    throw err;
+  });
+}
+function changerPortefeuille(id){
+  memoChoix(USER, id);
+  var p = (id!=='ancien') ? fdb.doc('users/'+USER.uid).set({foyer:id}).catch(function(){}) : Promise.resolve();
+  p.then(function(){ location.reload(); });
+}
+/* comptes des autres portefeuilles : pour les virements de l'un à l'autre */
+function chargerAutres(){
+  var A = (CTX.liste||[]).filter(function(x){ return x.id!==CTX.pfId; });
+  Promise.all(A.map(function(P){
+    return fdb.doc(P.base+'config/main').get().then(function(d){
+      var c = d.exists ? (d.data().comptes || [{id:'compte', label:'Compte principal', devise:'EUR', kind:'courant'}, {id:'especes', label:'Espèces', devise:'EUR', kind:'especes'}]) : [];
+      return {pf:P.id, nom:P.nom, comptes:c};
+    }).catch(function(){ return null; });
+  })).then(function(R){ CTX.autres = R.filter(Boolean); if(window.requestRender) requestRender(); });
+}
+function ecrireAutre(pfId, obj, id){
+  var P = (CTX.liste||[]).find(function(x){ return x.id===pfId; });
+  if(!P) return;
+  fdb.doc(P.base+'config/main').get().then(function(d){
+    var mois = (d.exists && d.data().moisCle) || new Date().toISOString().slice(0,7);
+    obj.mois = mois;
+    return fdb.doc(P.base+'transferts/'+id).set(obj);
+  }).catch(function(err){ toast('Le virement n\'a pas pu être noté dans « '+esc(P.nom)+' » ('+esc(msgErr(err))+').', 'bad'); });
 }
 var started = false, foyerUnsub = null;
 function suivreFoyer(){
@@ -250,13 +296,17 @@ function suivreFoyer(){
   if(CTX.mode!=='foyer') return;
   foyerUnsub = fdb.doc('foyers/'+CTX.foyerId).onSnapshot(function(d){
     CTX.foyer = d.exists ? d.data() : null;
+    var P = (CTX.liste||[]).find(function(x){ return x.id===CTX.foyerId; }); if(P && CTX.foyer) P.nom = CTX.foyer.nom || P.nom;
     if(!d.exists || (CTX.foyer.membres||[]).indexOf(USER.uid)<0){ location.reload(); return; }
     if(window.requestRender) requestRender();
   }, function(){ location.reload(); });
 }
 function lancer(c){
-  CTX.mode = c.mode; CTX.base = c.base || ''; CTX.foyerId = c.foyerId || null;
-  memoCtx(USER, {mode:c.mode, base:CTX.base, foyerId:CTX.foyerId});
+  CTX.mode = c.mode; CTX.base = c.base || ''; CTX.foyerId = c.foyerId || null; CTX.pfId = c.pfId || c.foyerId || (c.mode==='ancien' ? 'ancien' : null);
+  if(!CTX.liste) CTX.liste = CTX.pfId ? [{id:CTX.pfId, nom:(c.mode==='ancien'?'Nous':'Moi'), base:CTX.base}] : [];
+  memoCtx(USER, {mode:c.mode, base:CTX.base, foyerId:CTX.foyerId, pfId:CTX.pfId});
+  if(CTX.pfId) memoChoix(USER, CTX.pfId);
+  chargerAutres();
   started = true;
   suivreFoyer();
   lireInvitation(USER).then(function(inv){ CTX.invitation = (inv && inv.foyer!==CTX.foyerId) ? inv : null; if(CTX.invitation && window.requestRender) requestRender(); });
@@ -267,11 +317,11 @@ function lancer(c){
 function chargement(txt){ appEl().innerHTML = '<div class="empty"><p>'+esc(txt||'Chargement de votre budget…')+'</p></div>'; }
 
 /* ---------- créer son foyer / rejoindre un foyer ---------- */
-function creerFoyer(){
+function creerFoyer(nom){
   var ref = fdb.collection('foyers').doc();
-  return ref.set({nom:'Mon budget', owner:USER.uid, membres:[USER.uid], emails:[emailDe(USER)], creeLe:maintenant()})
+  return ref.set({nom:String(nom||'Moi').trim().slice(0,60) || 'Moi', owner:USER.uid, membres:[USER.uid], emails:[emailDe(USER)], creeLe:maintenant()})
     .then(function(){ return fdb.doc('users/'+USER.uid).set({foyer:ref.id}); })
-    .then(function(){ return {mode:'foyer', base:'foyers/'+ref.id+'/', foyerId:ref.id}; });
+    .then(function(){ memoChoix(USER, ref.id); return {mode:'foyer', base:'foyers/'+ref.id+'/', foyerId:ref.id, pfId:ref.id}; });
 }
 function rejoindre(inv){
   var em = emailDe(USER);
@@ -283,7 +333,7 @@ function rejoindre(inv){
     });
   }).then(function(){ return fdb.doc('users/'+USER.uid).set({foyer:inv.foyer}); })
     .then(function(){ return fdb.doc('invitations/'+em).delete().catch(function(){}); })
-    .then(function(){ memoCtx(USER, {mode:'foyer', base:'foyers/'+inv.foyer+'/', foyerId:inv.foyer}); });
+    .then(function(){ memoChoix(USER, inv.foyer); memoCtx(USER, {mode:'foyer', base:'foyers/'+inv.foyer+'/', foyerId:inv.foyer, pfId:inv.foyer}); });
 }
 function msgRejoindre(err){
   if(err && err.code==='non-verifie') return 'Confirmez d\'abord votre adresse : ouvrez l\'e-mail de vérification envoyé à '+emailDe(USER)+' (pensez aux indésirables), puis touchez à nouveau « Rejoindre ».';
@@ -311,9 +361,9 @@ function showBienvenue(){
     appEl().innerHTML = '<div class="auth-wrap">'+
       '<div class="auth-logo">€</div><h1>Bienvenue</h1><div class="sub">Connecté : '+esc(emailDe(USER))+'</div>'+
       (inv ? invitationHtml(inv, 'bvInv') : '')+
-      '<div class="card"><h3>'+(inv ? 'Ou commencer votre propre budget' : 'Créer votre budget')+'</h3>'+
-      '<p class="hint-line" style="margin-top:0;">Un budget privé, que vous pourrez partager plus tard (conjoint, colocataire…) depuis les Réglages.</p>'+
-      '<div class="tf-row" style="margin-top:12px;"><button class="btn '+(inv?'btn-ghost':'btn-primary')+'" id="bvCreer">Créer mon budget</button></div>'+
+      '<div class="card"><h3>'+(inv ? 'Ou commencer votre propre portefeuille' : 'Créer votre portefeuille')+'</h3>'+
+      '<p class="hint-line" style="margin-top:0;">Un portefeuille « Moi », privé. Vous pourrez ensuite en créer un autre à partager (« Nous ») depuis les Réglages.</p>'+
+      '<div class="tf-row" style="margin-top:12px;"><button class="btn '+(inv?'btn-ghost':'btn-primary')+'" id="bvCreer">Créer mon portefeuille</button></div>'+
       (ESSAI ? '<p class="hint-line"><b>Version d\'essai :</b> ce budget est séparé de votre vrai budget, qui n\'est pas touché. Pour essayer avec vos chiffres : dans l\'ancienne appli, onglet Bilan → « Copie de secours », puis ici « Créer mon budget » → « Importer le fichier ».</p>' : '')+
       '<p class="hint-line">Quelqu\'un doit vous inviter dans son budget ? Demandez-lui de vous inviter avec l\'adresse <b>'+esc(emailDe(USER))+'</b>, puis <button type="button" class="link-btn" id="bvRe">actualisez</button>.</p>'+
       '<div class="rg-msg" id="bvMsg"></div></div>'+
@@ -321,7 +371,7 @@ function showBienvenue(){
     if(inv) brancherInvitation(inv, 'bvInv', showBienvenue);
     $('bvCreer').onclick = function(){
       var b = $('bvCreer'); b.disabled = true; b.textContent = 'Création…';
-      creerFoyer().then(lancer).catch(function(err){ b.disabled = false; b.textContent = 'Créer mon budget'; $('bvMsg').className = 'rg-msg ko'; $('bvMsg').textContent = msgErr(err); });
+      creerFoyer('Moi').then(lancer).catch(function(err){ b.disabled = false; b.textContent = 'Créer mon portefeuille'; $('bvMsg').className = 'rg-msg ko'; $('bvMsg').textContent = msgErr(err); });
     };
     $('bvRe').onclick = showBienvenue;
     $('bvOut').onclick = function(){ auth.signOut(); };
@@ -380,6 +430,7 @@ document.addEventListener('change', function(ev){
 
 /* ================= page Réglages (bouton en haut à droite) ================= */
 var RG = {invite:'', inviteMsg:'', inviteTxt:'', suppr:false, supprMsg:'', armRetrait:null, invites:null};
+var ICON_WALLET = '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h15a3 3 0 0 1 3 3v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 7l12-3v3"/><circle cx="16.5" cy="13.5" r="1.2"/></svg>';
 var ICON_USER = '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
 function estProprio(){ return CTX.mode==='foyer' && CTX.foyer && CTX.foyer.owner===USER.uid; }
 function lienAppli(){ return location.origin + location.pathname; }
@@ -398,10 +449,38 @@ function chargerInvites(){
   }).catch(function(){ RG.invites = []; });
 }
 window.BC_HOOKS = {
+  heroBtn: function(){
+    var L = CTX.liste || []; if(!CTX.pfId) return '';
+    return '<label class="pf-sel" title="Changer de portefeuille">'+ICON_WALLET+'<select id="pfSel" aria-label="Portefeuille">'+
+      L.map(function(P){ return '<option value="'+esc(P.id)+'"'+(P.id===CTX.pfId?' selected':'')+'>'+esc(P.nom)+'</option>'; }).join('')+
+      '<option value="__nouveau">＋ Nouveau portefeuille…</option></select></label>';
+  },
+  autresComptes: function(){ return CTX.autres || []; },
+  pfActuel: function(){ var P = (CTX.liste||[]).find(function(x){ return x.id===CTX.pfId; }); return {id:CTX.pfId, nom: P ? P.nom : ''}; },
+  ecrireAutre: ecrireAutre,
 
-  page: function(){
+  pageHaut: function(){
     var h = '';
     if(CTX.invitation) h += invitationHtml(CTX.invitation, 'rgInv');
+    /* portefeuilles */
+    var L = CTX.liste || [];
+    h += '<div class="card" id="pfCard"><h3>Portefeuilles</h3>';
+    h += '<p class="hint-line" style="margin-top:0;">Chaque portefeuille a ses comptes et son budget. Par exemple « Moi » (à vous seul) et « Nous » (partagé). Les membres d\'un portefeuille ne voient pas les autres.</p>';
+    L.forEach(function(P){
+      var actuel = P.id===CTX.pfId;
+      h += '<div class="rg-row"><span><b style="color:var(--ink);">'+esc(P.nom)+'</b>'+(actuel?'<em>ouvert</em>':'')+(P.id==='ancien'?'<em>budget d\'origine</em>':(P.membres>1?'<em>'+P.membres+' membres</em>':'<em>vous seul</em>'))+'</span>'+
+        (actuel ? '' : '<button class="btn-mini btn-ok" data-pfopen="'+esc(P.id)+'">Ouvrir</button>')+'</div>';
+    });
+    if(RG.pfNouveau){
+      h += '<div class="tf-row" style="margin-top:10px;"><input class="text-input" id="pfNom" maxlength="60" placeholder="Nom (ex. Moi, Nous)" value="'+esc(RG.pfNom||'')+'"><button class="btn btn-primary btn-sm" id="pfCreer" style="flex:0 0 auto;">Créer</button></div>'+
+        '<div class="tf-row" style="margin-top:6px;"><button class="btn-mini" data-pfnom="Moi">Moi</button><button class="btn-mini" data-pfnom="Nous">Nous</button><button class="btn-mini" id="pfAnnuler">Annuler</button></div>'+
+        '<div class="rg-msg" id="pfMsg"></div>';
+    } else h += '<button class="add-row-btn" id="pfAjout">+ Nouveau portefeuille</button>';
+    h += '</div>';
+    return h;
+  },
+  page: function(){
+    var h = '';
     /* compte */
     h += '<div class="card"><h3>Mon compte</h3>';
     h += '<div class="rg-row"><span>'+esc(emailDe(USER))+(USER.emailVerified ? '' : '<em>adresse non vérifiée</em>')+'</span><button class="btn-mini" id="rgOut">Se déconnecter</button></div>';
@@ -410,10 +489,10 @@ window.BC_HOOKS = {
     h += '<div class="rg-msg" id="rgCptMsg"></div></div>';
     /* foyer */
     if(CTX.mode==='ancien'){
-      h += '<div class="card"><h3>Mon budget</h3><p class="hint-line" style="margin-top:0;">Budget d\'origine, partagé entre les deux adresses autorisées dans les règles de sécurité Firebase. Ces données n\'ont pas été déplacées.</p></div>';
+      h += '<div class="card"><h3>Ce portefeuille : Nous</h3><p class="hint-line" style="margin-top:0;">Budget d\'origine, partagé entre les deux adresses autorisées dans les règles de sécurité Firebase. Ces données n\'ont pas été déplacées.</p></div>';
     } else if(CTX.foyer){
       var F = CTX.foyer, proprio = estProprio();
-      h += '<div class="card"><h3>Mon budget partagé</h3>';
+      h += '<div class="card"><h3>Ce portefeuille et ses membres</h3>';
       h += '<label class="pl-det" style="border:0;padding:0;background:none;margin:0 0 6px;"><label><span>Nom</span><input class="text-input" id="rgNom" value="'+esc(F.nom||'')+'" maxlength="60"></label></label>';
       h += '<div style="font-size:12px;font-weight:600;color:var(--ink-muted);margin:10px 0 2px;">Membres</div>';
       (F.emails||[]).forEach(function(em){
@@ -459,6 +538,23 @@ window.BC_HOOKS = {
     return h;
   },
   wire: function(){
+    var ps = $('pfSel');
+    if(ps) ps.onchange = function(){
+      if(ps.value==='__nouveau'){ state.tab = 'reglages'; RG.pfNouveau = true; render(); var c = $('pfCard'); if(c) c.scrollIntoView({block:'start'}); var n = $('pfNom'); if(n) n.focus(); return; }
+      if(ps.value!==CTX.pfId){ chargement('Ouverture du portefeuille…'); changerPortefeuille(ps.value); }
+    };
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pfopen]'), function(b){ b.onclick = function(){ chargement('Ouverture du portefeuille…'); changerPortefeuille(b.getAttribute('data-pfopen')); }; });
+    var pa = $('pfAjout'); if(pa) pa.onclick = function(){ RG.pfNouveau = true; render(); var n = $('pfNom'); if(n) n.focus(); };
+    var pn = $('pfAnnuler'); if(pn) pn.onclick = function(){ RG.pfNouveau = false; render(); };
+    var pnom = $('pfNom'); if(pnom) pnom.oninput = function(){ RG.pfNom = pnom.value; };
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pfnom]'), function(b){ b.onclick = function(){ RG.pfNom = b.getAttribute('data-pfnom'); var n = $('pfNom'); if(n) n.value = RG.pfNom; }; });
+    var pc = $('pfCreer');
+    if(pc) pc.onclick = function(){
+      var nom = String(RG.pfNom||'').trim();
+      if(!nom){ var n = $('pfNom'); if(n){ n.classList.add('field-error'); n.focus(); } return; }
+      pc.disabled = true;
+      creerFoyer(nom).then(function(){ location.reload(); }).catch(function(e){ pc.disabled = false; var m = $('pfMsg'); if(m){ m.className = 'rg-msg ko'; m.textContent = msgErr(e); } });
+    };
     var pb = $('profBtn');
     if(pb) pb.onclick = function(){
       if(state.tab==='reglages'){ state.tab = 'saisie'; }

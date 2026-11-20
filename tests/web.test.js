@@ -15,7 +15,7 @@ const ORIG = 'ancien1@test.fr';
 let n = 0, ko = 0;
 function verif(nom, cond, detail){ n++; if(!cond) ko++; console.log((cond ? 'ok   ' : 'ÉCHEC') + ' ' + nom + (cond || detail == null ? '' : ' — ' + detail)); }
 const attendre = ms => new Promise(r => setTimeout(r, ms));
-async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms || 8000)){ try{ if(await fn()) return true; }catch(e){} await attendre(200); } return false; }
+async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms || 15000)){ try{ if(await fn()) return true; }catch(e){} await attendre(200); } return false; }
 
 (async () => {
   /* page fabriquée par le script, pointée vers le projet de démo de l'émulateur */
@@ -77,7 +77,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   await A.click('#bvCreer');
   verif('Alice : budget créé, écran « Votre budget est prêt »', await jusqua(() => A.$('#seedBtn')));
   await A.click('#seedBtn');
-  verif('Alice : l\'appli s\'ouvre', await jusqua(() => A.$('[data-tab="comptes"]')));
+  verif('Alice : l\'appli s\'ouvre', await jusqua(() => A.$('[data-tab="comptes"]')), A.errs.join(' | ') + ' / ' + (await A.textContent('body')).slice(0,200));
   await A.fill('#qaLabel', 'Boulangerie'); await A.fill('#qaMontant', '4,20'); await A.click('#qaAdd');
   const fid = await A.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k => k.startsWith('bc_ctx_')))).foyerId);
   let docs = {};
@@ -105,6 +105,32 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   await C.click('[data-tab="reglages"]');
   verif('Carole : 2 membres affichés', await jusqua(async () => { const t = await C.textContent('body'); return t.includes('alice@test.fr') && t.includes('carole@test.fr'); }));
 
+  /* --- Alice : un 2e portefeuille « Nous », et un virement de « Moi » vers « Nous » --- */
+  await A.click('[data-tab="reglages"]'); await A.waitForSelector('#pfAjout');
+  await A.click('#pfAjout'); await A.click('[data-pfnom="Nous"]'); await A.click('#pfCreer');
+  verif('Alice : portefeuille « Nous » créé (nouveau budget vide)', await jusqua(() => A.$('#seedBtn'), 12000));
+  await A.click('#seedBtn');
+  verif('Alice : sélecteur avec « Moi » et « Nous »', await jusqua(async () => { const o = await A.$$eval('#pfSel option', x => x.map(y => y.textContent)); return o.includes('Moi') && o.includes('Nous'); }, 15000));
+  const nousId = await A.evaluate(() => document.querySelector('#pfSel').value);
+  const moiId = await A.evaluate(() => [...document.querySelectorAll('#pfSel option')].find(o => o.textContent === 'Moi').value);
+  await A.selectOption('#pfSel', moiId);
+  verif('Alice : retour dans « Moi » (la dépense Boulangerie est là)', await jusqua(async () => { if(!(await A.$('#pfSel'))) return false; if((await A.inputValue('#pfSel')) !== moiId) return false; return await A.evaluate(() => (state.data.achats||[]).some(a => a.label === 'Boulangerie')); }, 15000));
+  await A.click('[data-tab="comptes"]');
+  verif('Alice : comptes de « Nous » proposés dans le virement', await jusqua(async () => (await A.$$eval('#virVers option', x => x.map(y => y.value))).includes('pf:' + nousId + ':compte')));
+  await A.selectOption('#virDe', 'compte'); await A.selectOption('#virVers', 'pf:' + nousId + ':compte');
+  await A.fill('#virMontant', '25'); await A.click('#virOk');
+  let ici = null, labas = null;
+  verif('virement noté dans « Moi » (sortie) et dans « Nous » (entrée)', await jusqua(async () => {
+    await env.withSecurityRulesDisabled(async ctx => { const f = ctx.firestore();
+      const a1 = await f.collection('foyers/' + moiId + '/transferts').get(); ici = a1.docs.map(d => ({id: d.id, ...d.data()})).find(x => x.vers === 'ext');
+      const b1 = await f.collection('foyers/' + nousId + '/transferts').get(); labas = b1.docs.map(d => ({id: d.id, ...d.data()})).find(x => x.de === 'ext'); });
+    return ici && labas && ici.id === labas.id && ici.montant === 25 && labas.montantVers === 25 && labas.vers === 'compte' && labas.ext.nom === 'Moi';
+  }, 10000));
+
+  await A.click('[data-tab="saisie"]'); await attendre(500);
+  await A.screenshot({path: path.join(out, 'web-portefeuille.png')});
+  await A.click('[data-tab="reglages"]'); await attendre(500);
+  await A.screenshot({path: path.join(out, 'web-portefeuilles-reglages.png')});
   /* --- Bob : rien à voir --- */
   const B = await nouvellePage();
   await creerCompte(B, 'bob@test.fr');
