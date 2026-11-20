@@ -81,6 +81,17 @@ const seed = {
   await p.fill('#virMontant', '75'); await p.check('#virRepeter'); await p.click('#virOk'); await p.waitForTimeout(400);
   const prog = await p.evaluate(() => state.data.programmes);
   verif('« Répéter chaque mois » crée un programme (pas refait ce mois-ci)', prog.length === 4 && prog[3].montant === 75 && prog[3].dernierMois === prog[3].dernierMois && prog[3].dernierMois);
+  /* ordre des cartes : descendre la 1re carte de l'onglet Mois */
+  await p.click('[data-tab="saisie"]'); await p.waitForTimeout(300);
+  const premiere = () => p.evaluate(() => { const c = [...document.querySelectorAll('#app > .card')].filter(x => !x.classList.contains('ordre-card'))[0]; return c ? c.className : ''; });
+  verif('ordre d\'origine : la carte des comptes en premier', (await premiere()).includes('solde-card'));
+  await p.click('[data-ordreedit="saisie"]'); await p.waitForTimeout(300);
+  await p.click('[data-ordre="saisie:0:1"]'); await p.waitForTimeout(300);
+  await p.click('#ordreFini'); await p.waitForTimeout(300);
+  verif('après « ↓ » : la carte des comptes n\'est plus en premier', !(await premiere()).includes('solde-card'));
+  verif('ordre gardé sur le téléphone', (await p.evaluate(() => JSON.parse(localStorage.getItem('bc_ordre_saisie'))[1])) === 'solde');
+  await p.click('[data-ordreedit="saisie"]'); await p.waitForTimeout(200); await p.click('#ordreDefaut'); await p.waitForTimeout(200); await p.click('#ordreFini'); await p.waitForTimeout(300);
+  verif('« Ordre d\'origine » remet la carte des comptes en premier', (await premiere()).includes('solde-card'));
   /* chèques : le solde ne baisse qu'à l'encaissement ; reporté à la clôture */
   await p.click('[data-tab="saisie"]'); await p.waitForTimeout(300);
   const s0 = await p.evaluate(() => soldesComptes().compte.solde);

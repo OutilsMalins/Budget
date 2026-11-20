@@ -88,11 +88,19 @@ EXTRA_CSS = r"""
   .invit-box{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.5; white-space:pre-line; margin-top:8px;}
   .danger-zone{border-color:#f1c9c4;}
   .btn-danger{background:var(--critical); color:#fff;}
-  .pf-sel{position:absolute; top:4px; right:0; display:inline-flex; align-items:center; gap:4px; max-width:46%; padding:5px 10px 5px 9px; border-radius:100px; background:var(--card); border:1px solid var(--line); color:var(--accent); box-shadow:var(--shadow);}
-  .pf-sel .i{width:17px; height:17px; flex:0 0 auto;}
-  .pf-sel::after{content:'▾'; color:var(--ink-muted); font-size:12px; margin-left:2px;}
-  .pf-sel select{border:0; background:transparent; color:var(--ink); font:600 14px -apple-system, system-ui, sans-serif; max-width:100%; min-width:0; padding:0 2px; -webkit-appearance:none; appearance:none; text-overflow:ellipsis;}
-  @media (max-width:700px){ .pf-sel select{font-size:16px !important;} }
+  .pf-wrap{position:absolute; top:4px; right:0; z-index:25; max-width:52%;}
+  .pf-sel{display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:7px 12px 7px 10px; border-radius:100px; background:var(--card); border:1px solid var(--line); color:var(--accent); box-shadow:var(--shadow); font:600 15px -apple-system, system-ui, sans-serif; cursor:pointer;}
+  .pf-sel span{color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .pf-sel .i{width:18px; height:18px; flex:0 0 auto;}
+  .pf-sel::after{content:'▾'; color:var(--ink-muted); font-size:12px;}
+  .pf-menu{position:absolute; right:0; top:calc(100% + 6px); width:260px; max-width:86vw; background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:0 16px 40px rgba(0,0,0,.22); padding:8px; display:flex; flex-direction:column; gap:4px;}
+  .pf-menu-t{font-size:12px; font-weight:700; color:var(--ink-muted); text-transform:uppercase; letter-spacing:.04em; padding:6px 8px 2px;}
+  .pf-item{position:relative; display:block; width:100%; text-align:left; border:0; background:transparent; border-radius:10px; padding:9px 30px 9px 10px; font-family:inherit; color:var(--ink); cursor:pointer;}
+  .pf-item b{display:block; font-size:15px;} .pf-item em{display:block; font-style:normal; font-size:12px; color:var(--ink-muted);}
+  .pf-item.on{background:var(--accent-bg);} .pf-item i{position:absolute; right:10px; top:50%; transform:translateY(-50%); font-style:normal; color:var(--accent); font-weight:700;}
+  .pf-menu-h{font-size:12.5px; color:var(--ink-2); margin:4px 8px; line-height:1.45;}
+  .pf-new{border:0; border-radius:10px; background:var(--accent); color:var(--accent-ink, #fff); font:600 14px -apple-system, system-ui, sans-serif; padding:10px; margin-top:4px; cursor:pointer;}
+  .pf-gerer{border:0; background:transparent; color:var(--accent); font:600 13px -apple-system, system-ui, sans-serif; padding:6px; cursor:pointer;}
   .hero{position:relative;}
   .essai-bandeau{position:sticky; top:0; z-index:30; background:#fdf3e1; color:#7a4a00; font-size:12.5px; font-weight:600; text-align:center; padding:6px 10px calc(6px); border-bottom:1px solid #f1dcb5;}
 </style>
@@ -428,6 +436,12 @@ document.addEventListener('change', function(ev){
   r.readAsText(ev.target.files[0]);
 });
 
+/* le menu des portefeuilles se ferme quand on touche ailleurs */
+document.addEventListener('click', function(ev){
+  if(!RG.pfMenu) return;
+  var t = ev.target; if(t && t.closest && t.closest('.pf-wrap')) return;
+  RG.pfMenu = false; if(window.render) render();
+}, true);
 /* ================= page Réglages (bouton en haut à droite) ================= */
 var RG = {invite:'', inviteMsg:'', inviteTxt:'', suppr:false, supprMsg:'', armRetrait:null, invites:null};
 var ICON_WALLET = '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h15a3 3 0 0 1 3 3v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 7l12-3v3"/><circle cx="16.5" cy="13.5" r="1.2"/></svg>';
@@ -451,9 +465,19 @@ function chargerInvites(){
 window.BC_HOOKS = {
   heroBtn: function(){
     var L = CTX.liste || []; if(!CTX.pfId) return '';
-    return '<label class="pf-sel" title="Changer de portefeuille">'+ICON_WALLET+'<select id="pfSel" aria-label="Portefeuille">'+
-      L.map(function(P){ return '<option value="'+esc(P.id)+'"'+(P.id===CTX.pfId?' selected':'')+'>'+esc(P.nom)+'</option>'; }).join('')+
-      '<option value="__nouveau">＋ Nouveau portefeuille…</option></select></label>';
+    var P0 = L.find(function(x){ return x.id===CTX.pfId; });
+    var h = '<div class="pf-wrap"><button type="button" class="pf-sel" id="pfBtn" aria-expanded="'+(RG.pfMenu?'true':'false')+'">'+ICON_WALLET+'<span>'+esc(P0 ? P0.nom : 'Portefeuille')+'</span></button>';
+    if(RG.pfMenu){
+      h += '<div class="pf-menu" role="menu"><div class="pf-menu-t">Mes portefeuilles</div>';
+      L.forEach(function(P){
+        var actuel = P.id===CTX.pfId;
+        h += '<button type="button" class="pf-item'+(actuel?' on':'')+'" data-pfid="'+esc(P.id)+'"'+(actuel?'':' data-pfopen="'+esc(P.id)+'"')+'><b>'+esc(P.nom)+'</b><em>'+(P.id==='ancien'?'budget d\'origine':(P.membres>1?P.membres+' membres':'vous seul'))+'</em>'+(actuel?'<i>✓</i>':'')+'</button>';
+      });
+      if(L.length<2) h += '<p class="pf-menu-h">Un portefeuille = des comptes et un budget à part. Par exemple « Moi » pour vous, et « Nous » à partager.</p>';
+      h += '<button type="button" class="pf-new" id="pfMenuNew">＋ Créer un portefeuille</button>'+
+           '<button type="button" class="pf-gerer" id="pfMenuGerer">Renommer, inviter…</button></div>';
+    }
+    return h + '</div>';
   },
   autresComptes: function(){ return CTX.autres || []; },
   pfActuel: function(){ var P = (CTX.liste||[]).find(function(x){ return x.id===CTX.pfId; }); return {id:CTX.pfId, nom: P ? P.nom : ''}; },
@@ -538,11 +562,9 @@ window.BC_HOOKS = {
     return h;
   },
   wire: function(){
-    var ps = $('pfSel');
-    if(ps) ps.onchange = function(){
-      if(ps.value==='__nouveau'){ state.tab = 'reglages'; RG.pfNouveau = true; render(); var c = $('pfCard'); if(c) c.scrollIntoView({block:'start'}); var n = $('pfNom'); if(n) n.focus(); return; }
-      if(ps.value!==CTX.pfId){ chargement('Ouverture du portefeuille…'); changerPortefeuille(ps.value); }
-    };
+    var pb2 = $('pfBtn'); if(pb2) pb2.onclick = function(ev){ ev.stopPropagation(); RG.pfMenu = !RG.pfMenu; render(); };
+    var mn = $('pfMenuNew'); if(mn) mn.onclick = function(){ RG.pfMenu = false; state.tab = 'reglages'; RG.pfNouveau = true; render(); window.scrollTo(0,0); var n = $('pfNom'); if(n) n.focus(); };
+    var mg = $('pfMenuGerer'); if(mg) mg.onclick = function(){ RG.pfMenu = false; state.tab = 'reglages'; render(); window.scrollTo(0,0); };
     Array.prototype.forEach.call(document.querySelectorAll('[data-pfopen]'), function(b){ b.onclick = function(){ chargement('Ouverture du portefeuille…'); changerPortefeuille(b.getAttribute('data-pfopen')); }; });
     var pa = $('pfAjout'); if(pa) pa.onclick = function(){ RG.pfNouveau = true; render(); var n = $('pfNom'); if(n) n.focus(); };
     var pn = $('pfAnnuler'); if(pn) pn.onclick = function(){ RG.pfNouveau = false; render(); };
