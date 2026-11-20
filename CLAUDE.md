@@ -186,7 +186,13 @@ Un seul identifiant, plusieurs **portefeuilles** (= foyers), par ex. « Moi » (
 
 Chaque onglet est construit par `pageCartes(onglet, [[id, nom, fonction], …])`. « ⇅ Réorganiser les cartes » (en bas de chaque onglet) ouvre la carte « Ordre des cartes » (flèches ↑ ↓, « Ordre d'origine »). L'ordre est gardé par téléphone (`localStorage bc_ordre_<onglet>`) ; une carte nouvelle se place à la fin. Le bandeau PDF du Bilan et le choix « en cours / préparer » du Budget restent en haut.
 
-### Les 5 onglets
+### Onglet Épargne et aide au choix (20/11/2026)
+
+- 6ᵉ onglet **Épargne** (`pageEpargne`) : résumé (épargne, investi, mis de côté ce mois, mois de dépenses couverts, objectifs), cartes Épargne et Investissements (déplacées depuis Budget), « Épargne du mois » (déplacée depuis Mois), deux aides.
+- **Aides** (`guideEpargneCard`, `guideInvestCard`) : informations générales + calculs sur les chiffres réels (épargne de précaution 3 à 6 mois de dépenses : `depensesMensuelles()`), 3 questions (précaution, horizon, réaction à une baisse de 20 %) → pistes à étudier avec fiches (`FICHES`). **Jamais un conseil personnalisé** (réservé aux conseillers agréés, ORIAS) : avertissement `AVERT` sur chaque aide ; **aucun taux chiffré** (ils changent) ; plafonds connus (Livret A 22 950 €, LDDS 12 000 €, LEP 10 000 €, PEA 150 000 €) à revérifier s'ils changent. Réponses gardées par téléphone (`bc_guide`).
+- **Titre du mois** : un vrai titre `<h1 id="monthTitle">` (le champ de saisie rendait le texte flou sur iPhone, d'après l'utilisateur) ; crayon ✎ pour le renommer. Marge sous la barre d'état (`env(safe-area-inset-top)`).
+
+### Les 6 onglets
 
 - **Mois (`pageSaisie`)**, quatre cartes :
   - **`compteCard`** : total disponible sur tous les comptes + un bouton par compte, bouton « Virement », deux fins de mois estimées (« si plus aucune dépense » et « en dépensant tout le prévu », tous comptes), « cette semaine », les retards, « Puiser dans l'épargne » (prépare un virement). Le retrait/dépôt d'espèces et le détail du calcul sont passés dans l'onglet Comptes (virement, et détail par compte).

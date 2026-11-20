@@ -149,7 +149,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   await B.click('#bvCreer');
   await B.waitForSelector('#impFile', {state: 'attached'});
   await B.setInputFiles('#impFile', path.join(out, 'copie.json'));
-  verif('Bob : copie de secours importée', await jusqua(async () => (await B.inputValue('#monthInput').catch(() => '')) === 'Importé', 12000));
+  verif('Bob : copie de secours importée', await jusqua(async () => (await B.textContent('#monthTitle').catch(() => '')) === 'Importé', 12000));
   await B.click('[data-tab="comptes"]');
   verif('Bob : soldes repris de la copie (compte 1 420 €, espèces 50 €)', await jusqua(async () => { const t = (await B.textContent('body')).replace(/\s/g, ''); return t.includes('1420,00€') && t.includes('50,00€'); }));
 
@@ -157,7 +157,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   const O = await nouvellePage();
   await O.waitForSelector('#lgEmail');
   await O.fill('#lgEmail', ORIG); await O.fill('#lgPass', 'motdepasse1'); await O.click('#lgBtn');
-  verif('compte d\'origine : budget d\'origine ouvert', await jusqua(async () => (await O.inputValue('#monthInput').catch(() => '')) === 'Budget d\'origine'));
+  verif('compte d\'origine : budget d\'origine ouvert', await jusqua(async () => (await O.textContent('#monthTitle').catch(() => '')) === 'Budget d\'origine'));
   await O.click('[data-tab="comptes"]');
   verif('compte d\'origine : solde du compte repris (1 234 €)', await jusqua(async () => (await O.textContent('body')).replace(/\s/g, '').includes('1234,00€')));
   await O.click('[data-tab="reglages"]');
@@ -172,7 +172,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   await E.click('#bvCreer');
   verif('essai : budget d\'essai créé', await jusqua(() => E.$('#seedBtn')));
   await E.click('#seedBtn');
-  verif('essai : l\'appli s\'ouvre sur le budget d\'essai', await jusqua(async () => !!(await E.$('[data-tab="comptes"]')) && (await E.inputValue('#monthInput')) !== 'Budget d\'origine'));
+  verif('essai : l\'appli s\'ouvre sur le budget d\'essai', await jusqua(async () => !!(await E.$('[data-tab="comptes"]')) && (await E.textContent('#monthTitle')) !== 'Budget d\'origine'));
   await E.fill('#qaLabel', 'Essai'); await E.fill('#qaMontant', '99'); await E.click('#qaAdd');
   await attendre(800);
   let racine2 = null, depRacine = 0;
@@ -183,7 +183,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   const V = await nouvellePage();
   await V.waitForSelector('#lgEmail');
   await V.fill('#lgEmail', ORIG); await V.fill('#lgPass', 'motdepasse1'); await V.click('#lgBtn');
-  verif('bascule : s\'ouvre sur le budget d\'origine (« Nous »), pas sur le portefeuille d\'essai', await jusqua(async () => (await V.inputValue('#monthInput').catch(() => '')) === 'Budget d\'origine'));
+  verif('bascule : s\'ouvre sur le budget d\'origine (« Nous »), pas sur le portefeuille d\'essai', await jusqua(async () => (await V.textContent('#monthTitle').catch(() => '')) === 'Budget d\'origine'));
   await V.click('#pfBtn');
   const noms = await V.$$eval('.pf-item b', x => x.map(y => y.textContent));
   verif('bascule : le menu montre « Nous » et le portefeuille d\'essai', noms.includes('Nous') && noms.length === 2, noms.join(', '));
@@ -191,7 +191,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   await V.click('.pf-item[data-pfid="' + essaiId + '"]');
   verif('bascule : ouvrir le portefeuille d\'essai', await jusqua(async () => (await V.$('#pfBtn')) && !(await V.textContent('#pfBtn')).includes('Nous')));
   await V.click('[data-tab="reglages"]'); await V.waitForSelector('#pfSuppr'); await V.click('#pfSuppr'); await V.click('#pfSupprOk');
-  verif('bascule : portefeuille d\'essai supprimé, retour sur « Nous »', await jusqua(async () => (await V.inputValue('#monthInput').catch(() => '')) === 'Budget d\'origine' && (await V.textContent('#pfBtn')).includes('Nous'), 20000));
+  verif('bascule : portefeuille d\'essai supprimé, retour sur « Nous »', await jusqua(async () => (await V.textContent('#monthTitle').catch(() => '')) === 'Budget d\'origine' && (await V.textContent('#pfBtn')).includes('Nous'), 20000));
   let resteEssai = true, racine3 = null;
   await env.withSecurityRulesDisabled(async ctx => { const f = ctx.firestore(); resteEssai = (await f.doc('foyers/' + essaiId).get()).exists; racine3 = (await f.doc('config/main').get()).data(); });
   verif('bascule : le portefeuille d\'essai a bien disparu, les données d\'origine sont intactes', !resteEssai && racine3.report.compte === 1234);
