@@ -110,11 +110,12 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   await A.click('#pfAjout'); await A.click('[data-pfnom="Nous"]'); await A.click('#pfCreer');
   verif('Alice : portefeuille « Nous » créé (nouveau budget vide)', await jusqua(() => A.$('#seedBtn'), 12000));
   await A.click('#seedBtn');
-  verif('Alice : sélecteur avec « Moi » et « Nous »', await jusqua(async () => { const o = await A.$$eval('#pfSel option', x => x.map(y => y.textContent)); return o.includes('Moi') && o.includes('Nous'); }, 15000));
-  const nousId = await A.evaluate(() => document.querySelector('#pfSel').value);
-  const moiId = await A.evaluate(() => [...document.querySelectorAll('#pfSel option')].find(o => o.textContent === 'Moi').value);
-  await A.selectOption('#pfSel', moiId);
-  verif('Alice : retour dans « Moi » (la dépense Boulangerie est là)', await jusqua(async () => { if(!(await A.$('#pfSel'))) return false; if((await A.inputValue('#pfSel')) !== moiId) return false; return await A.evaluate(() => (state.data.achats||[]).some(a => a.label === 'Boulangerie')); }, 15000));
+  await A.waitForSelector('#pfBtn'); await A.click('#pfBtn');
+  verif('Alice : menu avec « Moi » et « Nous »', await jusqua(async () => { const o = await A.$$eval('.pf-item b', x => x.map(y => y.textContent)); return o.includes('Moi') && o.includes('Nous'); }, 15000));
+  const nousId = await A.evaluate(() => document.querySelector('.pf-item.on').getAttribute('data-pfid'));
+  const moiId = await A.evaluate(() => [...document.querySelectorAll('.pf-item')].find(o => o.querySelector('b').textContent === 'Moi').getAttribute('data-pfid'));
+  await A.click('.pf-item[data-pfid="' + moiId + '"]');
+  verif('Alice : retour dans « Moi » (la dépense Boulangerie est là)', await jusqua(async () => { if(!(await A.$('#pfBtn'))) return false; if(!(await A.textContent('#pfBtn')).includes('Moi')) return false; return await A.evaluate(() => (state.data.achats||[]).some(a => a.label === 'Boulangerie')); }, 15000));
   await A.click('[data-tab="comptes"]');
   verif('Alice : comptes de « Nous » proposés dans le virement', await jusqua(async () => (await A.$$eval('#virVers option', x => x.map(y => y.value))).includes('pf:' + nousId + ':compte')));
   await A.selectOption('#virDe', 'compte'); await A.selectOption('#virVers', 'pf:' + nousId + ':compte');
@@ -128,7 +129,9 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   }, 10000));
 
   await A.click('[data-tab="saisie"]'); await attendre(500);
+  await A.click('#pfBtn'); await attendre(400);
   await A.screenshot({path: path.join(out, 'web-portefeuille.png')});
+  await A.click('#pfBtn'); await attendre(300);
   await A.click('[data-tab="reglages"]'); await attendre(500);
   await A.screenshot({path: path.join(out, 'web-portefeuilles-reglages.png')});
   /* --- Bob : rien à voir --- */

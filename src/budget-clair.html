@@ -813,6 +813,16 @@
   .chq-att{color:var(--warning); font-weight:700;}
   .chq-l{display:flex; justify-content:space-between; gap:10px; color:var(--warning);} .chq-l b{color:var(--warning) !important;}
   [data-theme] .solde-card .chq-line{color:rgba(255,255,255,.8);}
+
+  /* ordre des cartes */
+  .ordre-bas{text-align:center; margin:4px 0 14px;}
+  .ordre-bas .link-btn{font-size:13.5px; padding:8px 12px;}
+  .ordre-card{border:2px solid var(--accent) !important;}
+  .ordre-list{display:flex; flex-direction:column; gap:6px;}
+  .ordre-row{display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:8px 8px 8px 12px; font-size:14px; font-weight:600; color:var(--ink);}
+  .ordre-row span{flex:1 1 auto; min-width:0;}
+  .ord-btn{flex:0 0 auto; width:40px; height:36px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--accent); font-size:18px; font-weight:700; cursor:pointer;}
+  .ord-btn:disabled{opacity:.3; cursor:default;}
   /* =================== Styles au choix (Réglages → Apparence), sur <html data-theme="a…e"> ===================
      Chaque style redéfinit TOUTES les couleurs (variables) : fond, cartes, textes, lignes, accent.
      Les règles « [data-theme] … » remplacent les couleurs écrites en dur plus haut. */
@@ -920,6 +930,36 @@
     --hero:linear-gradient(150deg,#2a2722 0%,#1a1917 60%,#3a2f1c 100%); --hero-shadow:0 14px 34px rgba(0,0,0,.5); --hero-val:#f3d99b; --hero-btn:#d4a74a; --hero-btn-ink:#1c1b19;
     --tabbar:rgba(18,17,16,.95); --seg:rgba(255,255,255,.07); --sw-off:rgba(255,255,255,.18); --shadow:0 2px 14px rgba(0,0,0,.4); --toast:#2a2722;}
   [data-theme="e"] .solde-card{border:1px solid rgba(212,167,74,.35);}
+  /* F — océan (clair, fond bleu ciel) */
+  [data-theme="f"]{--page:#e3f2fb; --page-grad:radial-gradient(120% 55% at 0% 0%, #bfe6fb 0%, rgba(191,230,251,0) 60%), radial-gradient(90% 50% at 100% 20%, #c8f1ec 0%, rgba(200,241,236,0) 60%), linear-gradient(180deg,#dff0fb 0%,#e8f6f8 60%,#eef8f6 100%);
+    --card:#fbfeff; --surface:#eef7fc; --input:#ffffff; --line:#d9ebf5; --border:#c4dcea; --ink:#0d2638; --ink-2:#3e5a6e; --ink-muted:#7f97a8;
+    --accent:#0284c7; --accent-ink:#fff; --accent-bg:#dff1fb; --fixe:#0284c7; --fixe-bg:#dff1fb; --env:#be185d; --env-bg:#fce7f1;
+    --hero:linear-gradient(140deg,#0369a1 0%,#0284c7 45%,#06b6d4 100%); --hero-shadow:0 14px 32px rgba(2,132,199,.33); --tabbar:rgba(251,254,255,.9);}
+  /* G — rose poudré (clair, fond rose et lilas) */
+  [data-theme="g"]{--page:#f8e8f1; --page-grad:radial-gradient(120% 55% at 0% 0%, #f9d2e4 0%, rgba(249,210,228,0) 60%), radial-gradient(90% 50% at 100% 15%, #e6d9fb 0%, rgba(230,217,251,0) 60%), linear-gradient(180deg,#f8e6f0 0%,#f3e9f8 60%,#f6eef6 100%);
+    --card:#fffbfd; --surface:#fcf1f6; --input:#ffffff; --line:#f1dfe8; --border:#e6cbd8; --ink:#33172a; --ink-2:#6a4660; --ink-muted:#a78a9d;
+    --accent:#db2777; --accent-ink:#fff; --accent-bg:#fde4ef; --fixe:#7c3aed; --fixe-bg:#efe7fe; --env:#db2777; --env-bg:#fde4ef;
+    --hero:linear-gradient(140deg,#be185d 0%,#db2777 45%,#a855f7 110%); --hero-shadow:0 14px 32px rgba(219,39,119,.32); --tabbar:rgba(255,251,253,.9);}
+  /* H — terracotta (clair, fond sable) */
+  [data-theme="h"]{--page:#f6ebdf; --page-grad:radial-gradient(120% 55% at 0% 0%, #f5d9bd 0%, rgba(245,217,189,0) 60%), radial-gradient(90% 50% at 100% 15%, #efe1c9 0%, rgba(239,225,201,0) 60%), linear-gradient(180deg,#f5e8da 0%,#f7eee2 60%,#f8f1e8 100%);
+    --card:#fffcf8; --surface:#faf2e9; --input:#ffffff; --line:#eedfcf; --border:#e2cdb7; --ink:#2e1d12; --ink-2:#654633; --ink-muted:#a2866f;
+    --accent:#c2410c; --accent-ink:#fff; --accent-bg:#fdeadb; --fixe:#9a3412; --fixe-bg:#fbe7d6; --env:#be185d; --env-bg:#fce7f1;
+    --hero:linear-gradient(140deg,#9a3412 0%,#c2410c 50%,#ea8a3a 110%); --hero-shadow:0 14px 32px rgba(194,65,12,.30); --tabbar:rgba(255,252,248,.9);}
+  /* I — aubergine (sombre, accent rose) */
+  [data-theme="i"]{color-scheme:dark; --page:#140b1f; --page-grad:radial-gradient(110% 50% at 100% 0%, rgba(236,72,153,.20) 0%, rgba(236,72,153,0) 60%), radial-gradient(90% 45% at 0% 100%, rgba(139,92,246,.18) 0%, rgba(139,92,246,0) 60%), #140b1f;
+    --card:#1e1330; --surface:#271a3c; --input:#170e26; --line:#33244b; --border:#43315f; --ink:#f4ecfb; --ink-2:#cdbde0; --ink-muted:#9583ad;
+    --accent:#f472b6; --accent-ink:#2a0a1d; --accent-bg:rgba(244,114,182,.15); --fixe:#a78bfa; --fixe-bg:rgba(167,139,250,.15); --variable:#fb923c; --variable-bg:rgba(251,146,60,.14);
+    --good:#4ade80; --good-bg:rgba(74,222,128,.12); --warning:#fbbf24; --warning-bg:rgba(251,191,36,.13); --critical:#fb7185; --critical-bg:rgba(251,113,133,.15);
+    --env:#f472b6; --env-bg:rgba(244,114,182,.15);
+    --hero:linear-gradient(145deg,#4c1d95 0%,#86198f 55%,#db2777 120%); --hero-shadow:0 14px 34px rgba(0,0,0,.5); --hero-btn:#f472b6; --hero-btn-ink:#2a0a1d;
+    --tabbar:rgba(20,11,31,.95); --seg:rgba(255,255,255,.07); --sw-off:rgba(255,255,255,.18); --shadow:0 2px 14px rgba(0,0,0,.4); --toast:#2a1c40;}
+  [data-theme="i"] .card h3{padding-left:10px; border-left:3px solid var(--accent);}
+  /* J — minimal (clair, gris et noir, très sobre) */
+  [data-theme="j"]{--page:#eceef0; --page-grad:linear-gradient(180deg,#e6e8eb 0%,#eef0f2 50%,#f2f3f4 100%);
+    --card:#ffffff; --surface:#f4f5f6; --input:#ffffff; --line:#e3e5e8; --border:#d2d5da; --ink:#111214; --ink-2:#45484f; --ink-muted:#8a8e96;
+    --accent:#111214; --accent-ink:#fff; --accent-bg:#e7e8ea; --fixe:#2f3540; --fixe-bg:#e9ebee; --env:#9d174d; --env-bg:#f8e6ee;
+    --hero:linear-gradient(150deg,#1f2226 0%,#111214 100%); --hero-shadow:0 12px 28px rgba(0,0,0,.25); --hero-btn:#ffffff; --hero-btn-ink:#111214; --tabbar:rgba(255,255,255,.92);}
+
   [data-theme="b"] .card h3, [data-theme="e"] .card h3{padding-left:10px; border-left:3px solid var(--accent);}
   /* le choix du style */
   .favoris:empty{display:none;}
@@ -1755,7 +1795,12 @@ var THEMES_UI = [
   {id:'b', label:'Nuit', sous:'Sombre, accent turquoise', fond:'radial-gradient(120% 140% at 100% 0%,#0f766e,#0b2a3a 45%,#0a1120)', apercu:'#0a1120', page:'#0a1120'},
   {id:'c', label:'Corail', sous:'Chaleureux, fond pastel', fond:'linear-gradient(140deg,#ff8a5b,#f05a7e 60%,#c2418f)', apercu:'#fbe9e4', page:'#ddf2ea'},
   {id:'d', label:'Émeraude', sous:'Clair, fond vert d\'eau', fond:'linear-gradient(140deg,#064e3b,#047857 50%,#10b981 120%)', apercu:'#e2f1e8', page:'#e0f1e7'},
-  {id:'e', label:'Graphite et or', sous:'Sombre, accent doré', fond:'linear-gradient(150deg,#2a2722,#1a1917 60%,#3a2f1c)', apercu:'#121110', page:'#121110'}
+  {id:'e', label:'Graphite et or', sous:'Sombre, accent doré', fond:'linear-gradient(150deg,#2a2722,#1a1917 60%,#3a2f1c)', apercu:'#121110', page:'#121110'},
+  {id:'f', label:'Océan', sous:'Clair, fond bleu ciel', fond:'linear-gradient(140deg,#0369a1,#0284c7 45%,#06b6d4)', apercu:'#e3f2fb', page:'#dff0fb'},
+  {id:'g', label:'Rose poudré', sous:'Clair, rose et lilas', fond:'linear-gradient(140deg,#be185d,#db2777 45%,#a855f7 110%)', apercu:'#f8e8f1', page:'#f8e6f0'},
+  {id:'h', label:'Terracotta', sous:'Clair, fond sable', fond:'linear-gradient(140deg,#9a3412,#c2410c 50%,#ea8a3a 110%)', apercu:'#f6ebdf', page:'#f5e8da'},
+  {id:'i', label:'Aubergine', sous:'Sombre, accent rose', fond:'linear-gradient(145deg,#4c1d95,#86198f 55%,#db2777 120%)', apercu:'#140b1f', page:'#140b1f'},
+  {id:'j', label:'Minimal', sous:'Gris et noir, très sobre', fond:'linear-gradient(150deg,#1f2226,#111214)', apercu:'#eceef0', page:'#e6e8eb'}
 ];
 function themeActuel(){ var t = null; try{ t = localStorage.getItem('bc_theme'); }catch(e){} return THEMES_UI.some(function(x){ return x.id===t; }) ? t : 'a'; }
 function appliquerTheme(id){
@@ -1858,15 +1903,45 @@ function alerteApresAjout(posteId, montant){
   else if(apres > b) toast('🔴 <b>'+escHtml(l.label)+'</b> : '+eur(apres)+' sur '+eur0(b), 'bad');
 }
 
+/* ---------- ordre des cartes, au choix (gardé sur ce téléphone) ----------
+   Chaque onglet donne sa liste de cartes [id, nom, fonction] ; l'ordre choisi est
+   rangé dans localStorage « bc_ordre_<onglet> ». Une carte nouvelle se place à la fin. */
+function ordreLu(tab){ try{ var o = JSON.parse(localStorage.getItem('bc_ordre_'+tab)||'null'); return Array.isArray(o) ? o : null; }catch(e){ return null; } }
+function ordonner(tab, items){
+  var o = ordreLu(tab); if(!o) return items.slice();
+  var pos = {}; o.forEach(function(id, i){ pos[id] = i; });
+  return items.map(function(x, i){ return {x:x, i:i}; }).sort(function(a, b){
+    var pa = pos[a.x[0]], pb = pos[b.x[0]];
+    if(pa==null && pb==null) return a.i - b.i;
+    if(pa==null) return 1; if(pb==null) return -1;
+    return pa - pb;
+  }).map(function(y){ return y.x; });
+}
+function pageCartes(tab, items){
+  var L = ordonner(tab, items), h = '';
+  window.__ordreIds = window.__ordreIds || {}; window.__ordreIds[tab] = L.map(function(x){ return x[0]; });
+  if(state.ordreEdit===tab){
+    h += '<div class="card ordre-card"><h3>Ordre des cartes</h3><p class="hint-line" style="margin-top:0;">Montez ou descendez chaque carte. L\'ordre est gardé sur ce téléphone.</p><div class="ordre-list">';
+    L.forEach(function(x, i){
+      h += '<div class="ordre-row"><span>'+escHtml(x[1])+'</span>'+
+        '<button type="button" class="ord-btn" data-ordre="'+tab+':'+i+':-1"'+(i===0?' disabled':'')+' aria-label="Monter">↑</button>'+
+        '<button type="button" class="ord-btn" data-ordre="'+tab+':'+i+':1"'+(i===L.length-1?' disabled':'')+' aria-label="Descendre">↓</button></div>';
+    });
+    h += '</div><div class="tf-row" style="margin-top:12px;"><button class="btn btn-primary btn-sm" id="ordreFini">Terminé</button><button class="btn btn-ghost btn-sm" id="ordreDefaut">Ordre d\'origine</button></div></div>';
+  }
+  L.forEach(function(x){ h += x[2](); });
+  if(state.ordreEdit!==tab) h += '<div class="ordre-bas"><button type="button" class="link-btn" data-ordreedit="'+tab+'">⇅ Réorganiser les cartes</button></div>';
+  return h;
+}
 function pageSaisie(){
   var t = totals();
-  var html = '';
-  html += compteCard(t);
-  html += suggestionsCard(t);
-  html += renderAchatsCard();
-  html += aCocherCard(t);
-  html += versementsCard();
-  return html;
+  return pageCartes('saisie', [
+    ['solde', 'Comptes et reste à dépenser', function(){ return compteCard(t); }],
+    ['sugg', 'Suggestions', function(){ return suggestionsCard(t); }],
+    ['dep', 'Dépenses du mois', renderAchatsCard],
+    ['cocher', 'À cocher ce mois', function(){ return aCocherCard(t); }],
+    ['vers', 'Épargne du mois', versementsCard]
+  ]);
 }
 function pageBudget(){
   var d = state.data, nk = nextKey(d.moisCle);
@@ -1874,11 +1949,12 @@ function pageBudget(){
   var h = '<div class="budget-switch">'+seg('budgetMode',[['cur',''+escHtml(labelFromKey(d.moisCle).split(' ')[0])+' (en cours)'],['next','Préparer '+escHtml(labelFromKey(nk).split(' ')[0])]], next?'next':'cur')+'</div>';
   if(next) return h + prochainCard();
   var t = totals();
-  return h +
-    plier('rev', revenusCard(), eur(t.revB)) +
-    plier('postes', postesCard(), eur(t.sortiesB)) +
-    plier('ep', placementsCard('epargne'), (function(){ var e = epTotals('epargne'); return e.hasTotal ? eur(e.total) : ''; })()) +
-    plier('inv', placementsCard('invest'), state.data.epargnes.some(function(e){ return catOf(e)==='invest'; }) ? eur(investSum()) : '');
+  return h + pageCartes('budget', [
+    ['rev', 'Revenus', function(){ return plier('rev', revenusCard(), eur(t.revB)); }],
+    ['postes', 'Postes de dépenses', function(){ return plier('postes', postesCard(), eur(t.sortiesB)); }],
+    ['ep', 'Épargne', function(){ return plier('ep', placementsCard('epargne'), (function(){ var e = epTotals('epargne'); return e.hasTotal ? eur(e.total) : ''; })()); }],
+    ['inv', 'Investissements', function(){ return plier('inv', placementsCard('invest'), state.data.epargnes.some(function(e){ return catOf(e)==='invest'; }) ? eur(investSum()) : ''); }]
+  ]);
 }
 /* Transforme une carte « <div class="card"><h3>titre</h3>contenu</div> » en carte repliable :
    on ne voit que le titre et le total ; la flèche déroule le contenu. */
@@ -2056,8 +2132,11 @@ function compteCard(t){
 
 /* ================= PAGE RÉGLAGES ================= */
 function pageReglagesBase(){
-  var H = window.BC_HOOKS || {};
-  return (H.pageHaut ? H.pageHaut() : '') + automatismesCard() + themeCard() + (H.page ? H.page() : '');
+  var H = window.BC_HOOKS || {}, items = [];
+  if(H.pageHaut) items.push(['pf', 'Portefeuilles', H.pageHaut]);
+  items.push(['auto', 'Automatismes', automatismesCard], ['theme', 'Apparence', themeCard]);
+  if(H.page) items.push(['compte', 'Mon compte et sauvegarde', H.page]);
+  return pageCartes('reglages', items);
 }
 function interrupteur(cle, titre, sous){
   return '<label class="sw-row"><span><b>'+titre+'</b><em>'+sous+'</em></span><input type="checkbox" class="sw" data-auto="'+cle+'"'+(autoOn(cle)?' checked':'')+'></label>';
@@ -2218,7 +2297,12 @@ function chiffresCard(){
 /* ================= PAGE COMPTES ================= */
 function pageComptes(){
   var t = totals();
-  return virementCard(t) + comptesListeCard(t) + mouvementsCard() + tauxCard();
+  return pageCartes('comptes', [
+    ['vir', 'Faire un virement', function(){ return virementCard(t); }],
+    ['liste', 'Mes comptes', function(){ return comptesListeCard(t); }],
+    ['mvts', 'Virements du mois', mouvementsCard],
+    ['taux', 'Taux de change', tauxCard]
+  ]);
 }
 /* « ep:<id> » = un placement (livret, PEA…) ; sinon un compte */
 function virOptions(sel){
@@ -2466,8 +2550,14 @@ function prelevementsCard(){
 
 /* ================= PAGE 2 — BILAN ================= */
 function pageBilan(){
-  return pdfMoisCard() + chiffresCard() + coachCard() + plier('bilan', bilanCard()) + plier('repart', repartitionCard()) + plier('pareto', paretoCard()) + plier('hist', renderHistoryCard()) +
-    '';
+  return pdfMoisCard() + pageCartes('bilan', [
+    ['chiffres', 'Chiffres du mois', chiffresCard],
+    ['coach', 'Analyser mon budget', coachCard],
+    ['bilan', 'Bilan du mois', function(){ return plier('bilan', bilanCard()); }],
+    ['repart', 'Où va l\'argent', function(){ return plier('repart', repartitionCard()); }],
+    ['pareto', 'Pareto', function(){ return plier('pareto', paretoCard()); }],
+    ['hist', 'Historique des mois', function(){ return plier('hist', renderHistoryCard()); }]
+  ]);
 }
 /* Juste après une clôture : le PDF du mois en un toucher, pour le ranger dans un dossier « Budget » */
 function pdfMoisCard(){
@@ -4244,7 +4334,7 @@ function wireEvents(){
   Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'), function(b){
     b.onclick = function(){
       state.tab = b.getAttribute('data-tab');
-      state.confirmClose = false;
+      state.confirmClose = false; state.ordreEdit = null;
       var tEl = document.getElementById('toast'); if(tEl) tEl.className = 'toast';
       try{ localStorage.setItem('bc_tab', state.tab); }catch(e){}
       render();
@@ -4470,6 +4560,23 @@ function wireEvents(){
     b.onclick = function(){ var id = b.getAttribute('data-themepick'); try{ localStorage.setItem('bc_theme', id); }catch(e){} appliquerTheme(id); render(); };
   });
 
+  /* ---------- ordre des cartes ---------- */
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ordreedit]'), function(b){
+    b.onclick = function(){ state.ordreEdit = b.getAttribute('data-ordreedit'); render(); window.scrollTo(0,0); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ordre]'), function(b){
+    b.onclick = function(){
+      var v = b.getAttribute('data-ordre').split(':'), tab = v[0], i = +v[1], dir = +v[2];
+      var cur = (window.__ordreIds && window.__ordreIds[tab]) || null;
+      var L = (cur || []).slice();
+      var j = i + dir; if(j<0 || j>=L.length) return;
+      var x = L[i]; L[i] = L[j]; L[j] = x;
+      try{ localStorage.setItem('bc_ordre_'+tab, JSON.stringify(L)); }catch(e){}
+      render();
+    };
+  });
+  var of = document.getElementById('ordreFini'); if(of) of.onclick = function(){ state.ordreEdit = null; render(); toast('Ordre enregistré sur ce téléphone', 'good'); };
+  var od = document.getElementById('ordreDefaut'); if(od) od.onclick = function(){ try{ localStorage.removeItem('bc_ordre_'+state.ordreEdit); }catch(e){} render(); };
   /* ---------- réglages : automatismes ---------- */
   Array.prototype.forEach.call(document.querySelectorAll('[data-auto]'), function(el){
     el.onchange = function(){ state.data.auto = state.data.auto || {}; state.data.auto[el.getAttribute('data-auto')] = el.checked; persist(true, ['auto']); render(); };

@@ -171,9 +171,13 @@ L'utilisateur veut un maximum d'automatismes (« ça fait pro »), des analyses 
 
 Un seul identifiant, plusieurs **portefeuilles** (= foyers), par ex. « Moi » (à soi seul) et « Nous » (partagé). Les membres d'un portefeuille ne voient pas les autres (règles Firestore).
 - `listerPortefeuilles` : « Nous » = données d'origine (si le compte y a accès, jamais en version d'essai) + les foyers dont on est membre. Choix mémorisé par téléphone (`bc_pf_<uid>`, `bc_pf_essai_<uid>`) et dans `users/{uid}.foyer`. Changer = mémoriser puis recharger la page.
-- Sélecteur en haut à droite (`BC_HOOKS.heroBtn`, `#pfSel`, « ＋ Nouveau portefeuille… »), carte « Portefeuilles » en tête des Réglages (`BC_HOOKS.pageHaut`) : ouvrir, créer (noms proposés « Moi », « Nous »).
+- Bouton en haut à droite (`BC_HOOKS.heroBtn`, `#pfBtn`) qui ouvre un menu (`RG.pfMenu`, `.pf-item`) : portefeuilles, « ＋ Créer un portefeuille », « Renommer, inviter… » (l'ancien `<select>` natif n'était pas compris sur iPhone), carte « Portefeuilles » en tête des Réglages (`BC_HOOKS.pageHaut`) : ouvrir, créer (noms proposés « Moi », « Nous »).
 - **Virement entre portefeuilles** : options `pf:<portefeuille>:<compte>` dans le virement (comptes des autres portefeuilles lus au lancement : `BC_HOOKS.autresComptes`). Noté des deux côtés avec le même identifiant : ici `{de, vers:'ext', ext:{pf, nom, compte, compteLabel, devise}}`, là-bas `{de:'ext', vers, montantVers}` (écrit par `BC_HOOKS.ecrireAutre`, au mois en cours de l'autre portefeuille). Pas avec un placement. Supprimer un côté ne supprime pas l'autre.
 - ⚠️ L'ancienne appli (racine) ne connaît pas `de:'ext'` : ne pas écrire de virement entre portefeuilles dans les données d'origine tant qu'elle sert encore (la version d'essai ne les touche pas).
+
+### Ordre des cartes (20/11/2026)
+
+Chaque onglet est construit par `pageCartes(onglet, [[id, nom, fonction], …])`. « ⇅ Réorganiser les cartes » (en bas de chaque onglet) ouvre la carte « Ordre des cartes » (flèches ↑ ↓, « Ordre d'origine »). L'ordre est gardé par téléphone (`localStorage bc_ordre_<onglet>`) ; une carte nouvelle se place à la fin. Le bandeau PDF du Bilan et le choix « en cours / préparer » du Budget restent en haut.
 
 ### Les 5 onglets
 
@@ -230,7 +234,7 @@ Quatre boutons. Chacun affiche un petit chargement mis en scène (environ 2,5 s,
 - **Pareto dans une section fermée :** sa largeur vaut 0, donc on le redessine à l'ouverture (`b-pareto`).
 - **Ancien tableau qui débordait :** une règle globale `table{min-width:720px}` existe. Mettre `min-width:0` sur les nouveaux tableaux.
 - **Mise en page :** tester à 390 px de large (iPhone).
-- **Styles au choix (20/11/2026)** : 5 styles (`THEMES_UI` : a Bleu-violet par défaut, b Nuit, c Corail, d Émeraude, e Graphite et or), choisis dans Réglages → Apparence (version Claude : en bas du Bilan), gardés par téléphone (`localStorage bc_theme`), appliqués par `<html data-theme>`. Chaque style redéfinit **toutes** les couleurs (variables `--page`, `--page-grad`, `--card`, `--surface`, `--ink…`, `--accent…`, `--hero…`) : fond coloré, cartes, textes, champs, barre d'onglets ; Nuit et Graphite et or sont entièrement sombres. Les règles `[data-theme] …` remplacent les couleurs écrites en dur. La carte principale y devient une « carte bancaire » colorée. L'utilisateur veut une appli **simple et qui donne envie** : peu de texte visible, les explications derrière ⓘ.
+- **Styles au choix (20/11/2026)** : 10 styles (`THEMES_UI` : a Bleu-violet par défaut, b Nuit, c Corail, d Émeraude, e Graphite et or, f Océan, g Rose poudré, h Terracotta, i Aubergine, j Minimal ; sombres : b, e, i), choisis dans Réglages → Apparence (version Claude : en bas du Bilan), gardés par téléphone (`localStorage bc_theme`), appliqués par `<html data-theme>`. Chaque style redéfinit **toutes** les couleurs (variables `--page`, `--page-grad`, `--card`, `--surface`, `--ink…`, `--accent…`, `--hero…`) : fond coloré, cartes, textes, champs, barre d'onglets ; Nuit et Graphite et or sont entièrement sombres. Les règles `[data-theme] …` remplacent les couleurs écrites en dur. La carte principale y devient une « carte bancaire » colorée. L'utilisateur veut une appli **simple et qui donne envie** : peu de texte visible, les explications derrière ⓘ.
 - **Style de base (19/11/2026)** : thème sobre (tokens `:root`, bloc « Style pro » en fin de `<style>`, qui prime sur les règles plus haut). Icônes SVG (`ICON`, `svgI`) dans la barre d'onglets et les boutons ; plus d'émojis décoratifs dans les titres (ceux des noms de postes et des bilans restent : ce sont des données).
 - **Ordre `membres` / `emails` d'un foyer** : même ordre (création, `arrayUnion`, `arrayRemove`) ; « Retirer un membre » s'en sert pour retrouver l'uid.
 
