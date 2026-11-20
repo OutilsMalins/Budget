@@ -14,6 +14,7 @@ Toute l'interface est **en français**.
   - les « options avancées » de l'onglet Mois ;
   - le Pareto (il a dit « on verra plus tard »).
 - **L'utilisateur n'est pas développeur.** Expliquer simplement, étape par étape, en français.
+- **Redonner les adresses à chaque réponse** (demande de l'utilisateur) : version d'essai https://outilsmalins.github.io/Budget/essai/ ; ancienne appli https://outilsmalins.github.io/Budget/ .
 - **Toute modification de l'appli doit aller dans les DEUX versions** (voir Déploiement) :
   1. modifier `src/budget-clair.html` ;
   2. reconstruire `index.html` avec le script ;
@@ -221,7 +222,7 @@ Quatre boutons. Chacun affiche un petit chargement mis en scène (environ 2,5 s,
 - **Pareto dans une section fermée :** sa largeur vaut 0, donc on le redessine à l'ouverture (`b-pareto`).
 - **Ancien tableau qui débordait :** une règle globale `table{min-width:720px}` existe. Mettre `min-width:0` sur les nouveaux tableaux.
 - **Mise en page :** tester à 390 px de large (iPhone).
-- **Styles au choix (20/11/2026)** : 5 styles (`THEMES_UI` : a Bleu-violet par défaut, b Nuit, c Corail, d Émeraude, e Graphite et or), choisis dans Réglages → Apparence (version Claude : en bas du Bilan), gardés par téléphone (`localStorage bc_theme`), appliqués par `<html data-theme>`. La carte principale y devient une « carte bancaire » colorée. L'utilisateur veut une appli **simple et qui donne envie** : peu de texte visible, les explications derrière ⓘ.
+- **Styles au choix (20/11/2026)** : 5 styles (`THEMES_UI` : a Bleu-violet par défaut, b Nuit, c Corail, d Émeraude, e Graphite et or), choisis dans Réglages → Apparence (version Claude : en bas du Bilan), gardés par téléphone (`localStorage bc_theme`), appliqués par `<html data-theme>`. Chaque style redéfinit **toutes** les couleurs (variables `--page`, `--page-grad`, `--card`, `--surface`, `--ink…`, `--accent…`, `--hero…`) : fond coloré, cartes, textes, champs, barre d'onglets ; Nuit et Graphite et or sont entièrement sombres. Les règles `[data-theme] …` remplacent les couleurs écrites en dur. La carte principale y devient une « carte bancaire » colorée. L'utilisateur veut une appli **simple et qui donne envie** : peu de texte visible, les explications derrière ⓘ.
 - **Style de base (19/11/2026)** : thème sobre (tokens `:root`, bloc « Style pro » en fin de `<style>`, qui prime sur les règles plus haut). Icônes SVG (`ICON`, `svgI`) dans la barre d'onglets et les boutons ; plus d'émojis décoratifs dans les titres (ceux des noms de postes et des bilans restent : ce sont des données).
 - **Ordre `membres` / `emails` d'un foyer** : même ordre (création, `arrayUnion`, `arrayRemove`) ; « Retirer un membre » s'en sert pour retrouver l'uid.
 

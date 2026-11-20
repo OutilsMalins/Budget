@@ -818,12 +818,61 @@
   .chq-att{color:var(--warning); font-weight:700;}
   .chq-l{display:flex; justify-content:space-between; gap:10px; color:var(--warning);} .chq-l b{color:var(--warning) !important;}
   [data-theme] .solde-card .chq-line{color:rgba(255,255,255,.8);}
-  /* =================== Styles au choix (Réglages → Apparence), sur <html data-theme="a|b"> =================== */
-  /* commun : la carte principale devient une « carte bancaire » colorée */
-  [data-theme] .solde-card{border:0; color:#fff; padding:20px 18px 16px; border-radius:22px;}
+  /* =================== Styles au choix (Réglages → Apparence), sur <html data-theme="a…e"> ===================
+     Chaque style redéfinit TOUTES les couleurs (variables) : fond, cartes, textes, lignes, accent.
+     Les règles « [data-theme] … » remplacent les couleurs écrites en dur plus haut. */
+  [data-theme]{--card-2:var(--surface); --hero-ink:#fff; --tabbar:rgba(255,255,255,.9); --seg:rgba(0,0,0,.06); --sw-off:rgba(0,0,0,.18); --shadow:0 2px 12px rgba(20,24,60,.07);}
+  [data-theme] body{background:var(--page); color:var(--ink);}
+  [data-theme] body::before{display:block; content:''; position:fixed; inset:0; z-index:-1; pointer-events:none; background:var(--page-grad);}
+  [data-theme] .card{background:var(--card); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow);}
+  [data-theme] .card h3{font-size:17px; color:var(--ink);}
+  [data-theme] .month-edit{color:var(--hero-title, var(--ink));}
+  [data-theme] .hero .sub{color:var(--hero-sub, var(--ink-muted));}
+  [data-theme] .tabbar{background:var(--tabbar); border-top:1px solid var(--line);}
+  [data-theme] .tab-btn{color:var(--ink-muted);}
+  [data-theme] .tab-btn.active{color:var(--accent); background:var(--accent-bg); border-radius:14px;}
+  [data-theme] .seg{background:var(--seg);}
+  [data-theme] .seg button{color:var(--ink-2);}
+  [data-theme] .seg button.on{background:var(--card); color:var(--ink);}
+  [data-theme] .pill{background:var(--card); color:var(--ink-2); border-color:var(--border);}
+  [data-theme] .pill.active{background:var(--accent); color:var(--accent-ink); border-color:transparent;}
+  [data-theme] .btn-primary, [data-theme] .btn-ok, [data-theme] .dl-pdf, [data-theme] .sug-act .btn-mini, [data-theme] .i-btn.on{background:var(--accent); color:var(--accent-ink); border-color:transparent;}
+  [data-theme] .btn.btn-ghost, [data-theme] .btn-mini{background:var(--card); color:var(--ink-2); border-color:var(--border);}
+  [data-theme] .num-input, [data-theme] .text-input, [data-theme] .chip-select, [data-theme] .sort-select{background-color:var(--input, var(--card)); color:var(--ink); border-color:var(--border);}
+  [data-theme] .num-input::placeholder, [data-theme] .text-input::placeholder{color:var(--ink-muted);}
+  [data-theme] .quick-add, [data-theme] .pl-det, [data-theme] .ilist .pl-det, [data-theme] .tf-apres, [data-theme] .kpi-row > div, [data-theme] .semaine, [data-theme] .aide-txt, [data-theme] .close-bilan, [data-theme] .search-res, [data-theme] .invit-box{background:var(--surface); border-color:var(--line); color:var(--ink);}
+  [data-theme] .ilist, [data-theme] .dep, [data-theme] .chk-row, [data-theme] .calc, [data-theme] .cpt-chip, [data-theme] .theme-pick button, [data-theme] .ana-btn, [data-theme] .cp, [data-theme] .pt-tile, [data-theme] .pt-fin div, [data-theme] .ep-stat, [data-theme] .pn-sum > div, [data-theme] .fav-chip{background:var(--card); border-color:var(--line); color:var(--ink);}
+  [data-theme] .chk-row.done, [data-theme] .irow.on, [data-theme] .irow:active{background:var(--surface);}
+  [data-theme] .irow{color:var(--ink);}
+  [data-theme] .irow .dot{box-shadow:0 0 0 3px var(--card), 0 0 0 4px var(--line);}
+  [data-theme] .ana-btn.lock{background:var(--surface);}
+  [data-theme] .coach-card{background:var(--card);}
+  [data-theme] .add-row-btn{color:var(--accent); border-color:var(--border);}
+  [data-theme] .link-btn{color:var(--accent);}
+  [data-theme] .sw{background:var(--sw-off);}
+  [data-theme] .sw:checked{background:var(--accent);}
+  [data-theme] .nat-btn.nat-env, [data-theme] select.nat-env{background:var(--env-bg); color:var(--env);}
+  [data-theme] .nat-btn.nat-bes, [data-theme] select.nat-bes{background:var(--fixe-bg); color:var(--fixe);}
+  [data-theme] .mini-bar, [data-theme] .rythme-bar, [data-theme] .ep-bar, [data-theme] .obj-bar, [data-theme] .cm-bars i, [data-theme] .pt-b, [data-theme] .hb-b, [data-theme] .ab-prog{background:var(--line);}
+  [data-theme] .cm-bars u{background:var(--accent);}
+  [data-theme] .toast{background:var(--toast, #1d2230); color:#fff;}
+  [data-theme] .sec-count{background:var(--seg); color:var(--ink-2);}
+  [data-theme] details.sec > summary, [data-theme] .itxt b, [data-theme] .calc b, [data-theme] .cm-list b, [data-theme] .tf-txt b{color:var(--ink);}
+  [data-theme] thead th, [data-theme] table.repart th{color:var(--ink-muted); border-color:var(--line);}
+  [data-theme] tbody tr, [data-theme] table.repart td{border-color:var(--line);}
+  [data-theme] table.rows tr{background:var(--surface); border-color:var(--line);}
+  [data-theme] .sug{background:var(--surface);}
+  [data-theme] .sug-bad{background:var(--critical-bg);} [data-theme] .sug-warn{background:var(--warning-bg);} [data-theme] .sug-good{background:var(--good-bg);}
+  [data-theme] .alerte{background:var(--warning-bg); color:var(--ink);} [data-theme] .alerte.over{background:var(--critical-bg);}
+  [data-theme] .deficit-hint{background:var(--warning-bg); color:var(--ink);}
+  [data-theme] .vir-swap{background:var(--card); border-color:var(--border); color:var(--accent);}
+  [data-theme] .auth-wrap .card{background:var(--card);}
+  /* la carte principale : une « carte bancaire » au dégradé du style */
+  [data-theme] .solde-card{background:var(--hero); border:0; color:var(--hero-ink); padding:20px 18px 16px; border-radius:22px; box-shadow:var(--hero-shadow);}
   [data-theme] .solde-card .solde-lbl{color:rgba(255,255,255,.78);}
-  [data-theme] .solde-card .solde-val{color:#fff !important; font-size:38px;}
-  [data-theme] .solde-card .btn-primary{background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.28);}
+  [data-theme] .solde-card .solde-val{color:var(--hero-val, #fff) !important; font-size:38px;}
+  [data-theme] .solde-card .btn-primary{background:var(--hero-btn, rgba(255,255,255,.18)); color:var(--hero-btn-ink, #fff); border:1px solid rgba(255,255,255,.28);}
+  [data-theme] .solde-card .i-btn{border-color:rgba(255,255,255,.5); color:rgba(255,255,255,.85);}
   [data-theme] .solde-card .cpt-chip{background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.18); color:#fff;}
   [data-theme] .solde-card .cpt-chip span{color:rgba(255,255,255,.85);}
   [data-theme] .solde-card .cpt-chip b{color:#fff;}
@@ -831,70 +880,59 @@
   [data-theme] .solde-card .cpt-dot{box-shadow:0 0 0 2px rgba(255,255,255,.35);}
   [data-theme] .solde-card .proj2 > div{color:rgba(255,255,255,.85);}
   [data-theme] .solde-card .proj2 b{color:#fff !important;}
-  [data-theme] .solde-card .proj-line, [data-theme] .solde-card .proj-line span{color:rgba(255,255,255,.7);}
+  [data-theme] .solde-card .proj-line, [data-theme] .solde-card .proj-line span, [data-theme] .solde-card .chq-line{color:rgba(255,255,255,.75);}
   [data-theme] .solde-card .semaine{background:rgba(255,255,255,.14); border:0; color:#fff;}
   [data-theme] .solde-card .semaine i{color:rgba(255,255,255,.75);}
   [data-theme] .solde-card .semaine.retard{background:rgba(255,196,120,.22);}
   [data-theme] .solde-card .warn-line, [data-theme] .solde-card > .hint-line{color:#ffe2b8;}
-  [data-theme] .solde-card .reste-bloc{background:#fff; color:var(--ink); border:0; border-radius:16px; padding:14px; margin-top:14px;}
+  [data-theme] .solde-card .reste-bloc{background:var(--card); color:var(--ink); border:0; border-radius:16px; padding:14px; margin-top:14px;}
   [data-theme] .solde-card .reste-bloc .solde-lbl{color:var(--ink-muted);}
   [data-theme] .solde-card .reste-bloc .rythme-txt{color:var(--ink-2);}
   [data-theme] .solde-card .reste-bloc .hint-line{color:var(--ink-muted);}
+  [data-theme] .solde-card .rythme-mark{background:var(--ink-2);}
   [data-theme] .solde-card .deficit-hint{color:var(--ink);}
-  [data-theme] .solde-card .deficit-hint.soft{background:rgba(255,255,255,.92); border-color:transparent;}
-  [data-theme] .card{border-radius:18px;}
-  [data-theme] .card h3{font-size:17px;}
-  [data-theme] .tab-btn.active{border-radius:14px;}
-  /* A — bleu-violet */
-  [data-theme="a"]{--page:#eef1f8; --accent:#4f46e5; --accent-bg:#eef0ff; --fixe:#4f46e5; --fixe-bg:#eef0ff;}
-  [data-theme="a"] body{background:#eef1f8;}
-  [data-theme="a"] .solde-card{background:linear-gradient(135deg,#2563eb 0%,#4f46e5 55%,#7c3aed 100%); box-shadow:0 12px 30px rgba(79,70,229,.35);}
-  [data-theme="a"] .card{box-shadow:0 2px 10px rgba(30,41,90,.06); border-color:transparent;}
-  [data-theme="a"] .tab-btn.active{background:#eef0ff;}
-  /* B — nuit et turquoise */
-  [data-theme="b"]{--page:#f1f5f4; --accent:#0d9488; --accent-bg:#e6f6f4; --fixe:#0d9488; --fixe-bg:#e6f6f4;}
-  [data-theme="b"] body{background:#f1f5f4;}
-  [data-theme="b"] .solde-card{background:radial-gradient(120% 140% at 100% 0%,#155e75 0%,#0f172a 60%); box-shadow:0 14px 34px rgba(15,23,42,.35);}
-  [data-theme="b"] .solde-card .btn-primary{background:#14b8a6; border-color:#14b8a6;}
-  [data-theme="b"] .card{border-color:#e3e9e8;}
-  [data-theme="b"] .card h3{padding-left:10px; border-left:3px solid #14b8a6;}
-  [data-theme="b"] .tabbar{background:#0f172a; border-top:0;}
-  [data-theme="b"] .tab-btn{color:#94a3b8;}
-  [data-theme="b"] .tab-btn.active{color:#5eead4; background:rgba(94,234,212,.10);}
-  [data-theme="b"] .toast{background:#0f172a;}
-  /* C — corail, fond pastel (comme l'ancienne appli) */
-  [data-theme="c"]{--page:#e3f4ee; --accent:#e0526f; --accent-bg:#fdeef1; --fixe:#2a78d6; --fixe-bg:#e8f0fb;}
-  [data-theme="c"] body{background:#e3f4ee;}
-  [data-theme="c"] body::before{display:block; content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
-    background:radial-gradient(120% 60% at 0% 0%, #b9e8d6 0%, rgba(185,232,214,0) 62%), radial-gradient(90% 55% at 100% 18%, #c9dcfa 0%, rgba(201,220,250,0) 64%), radial-gradient(110% 60% at 50% 100%, #fad6c0 0%, rgba(250,214,192,0) 62%), linear-gradient(180deg, #ddf2ea 0%, #e9f0fb 50%, #f8e9df 100%);}
-  [data-theme="c"] .solde-card{background:linear-gradient(140deg,#ff8a5b 0%,#f05a7e 60%,#c2418f 100%); box-shadow:0 12px 30px rgba(240,90,126,.35);}
-  [data-theme="c"] .card{border-color:rgba(255,255,255,.7); box-shadow:0 6px 22px rgba(23,62,74,.08);}
-  [data-theme="c"] .tabbar{background:rgba(255,255,255,.88);}
-  [data-theme="c"] .tab-btn.active{background:#fdeef1;}
-  /* D — émeraude */
-  [data-theme="d"]{--page:#eef5f0; --accent:#047857; --accent-bg:#e3f3ea; --fixe:#047857; --fixe-bg:#e3f3ea;}
-  [data-theme="d"] body{background:#eef5f0;}
-  [data-theme="d"] .solde-card{background:linear-gradient(140deg,#065f46 0%,#059669 60%,#34d399 130%); box-shadow:0 12px 30px rgba(5,150,105,.32);}
-  [data-theme="d"] .card{border-color:transparent; box-shadow:0 2px 10px rgba(6,78,59,.07);}
-  [data-theme="d"] .tab-btn.active{background:#e3f3ea;}
-  /* E — graphite et or */
-  [data-theme="e"]{--page:#f5f1ea; --accent:#9a6b1f; --accent-bg:#f6eedf; --fixe:#9a6b1f; --fixe-bg:#f6eedf;}
-  [data-theme="e"] body{background:#f5f1ea;}
-  [data-theme="e"] .solde-card{background:linear-gradient(150deg,#1c1c1e 0%,#2c2a27 60%,#3d3428 100%); box-shadow:0 14px 34px rgba(28,28,30,.35);}
-  [data-theme="e"] .solde-card .solde-val{color:#f3d99b !important;}
-  [data-theme="e"] .solde-card .btn-primary{background:#c9a24a; border-color:#c9a24a; color:#1c1c1e;}
-  [data-theme="e"] .btn-primary{background:#9a6b1f;}
-  [data-theme="e"] .card{border-color:#ebe3d5;}
-  [data-theme="e"] .card h3{padding-left:10px; border-left:3px solid #c9a24a;}
-  [data-theme="e"] .tabbar{background:#1c1c1e; border-top:0;}
-  [data-theme="e"] .tab-btn{color:#a8a29e;}
-  [data-theme="e"] .tab-btn.active{color:#f3d99b; background:rgba(243,217,155,.10);}
+  [data-theme] .solde-card .deficit-hint.soft{background:var(--card); border-color:transparent;}
+
+  /* A — bleu-violet (clair, fond lavande) */
+  [data-theme="a"]{--page:#e9ebfb; --page-grad:radial-gradient(120% 55% at 0% 0%, #cfd5ff 0%, rgba(207,213,255,0) 60%), radial-gradient(90% 50% at 100% 10%, #e3d4ff 0%, rgba(227,212,255,0) 60%), linear-gradient(180deg,#e7eafc 0%,#eeeafc 60%,#f1edfb 100%);
+    --card:#ffffff; --surface:#f4f4fe; --input:#fbfbff; --line:#e4e5f7; --border:#d4d7f0; --ink:#1b1d3a; --ink-2:#474b74; --ink-muted:#8b8fb4;
+    --accent:#4f46e5; --accent-ink:#fff; --accent-bg:#eceeff; --fixe:#4f46e5; --fixe-bg:#eceeff; --env:#b0307a; --env-bg:#fbe8f3;
+    --hero:linear-gradient(135deg,#2563eb 0%,#4f46e5 55%,#7c3aed 100%); --hero-shadow:0 14px 32px rgba(79,70,229,.35); --tabbar:rgba(255,255,255,.88);}
+  /* B — nuit (sombre, accent turquoise) */
+  [data-theme="b"]{color-scheme:dark; --page:#0a1120; --page-grad:radial-gradient(110% 50% at 100% 0%, rgba(20,184,166,.20) 0%, rgba(20,184,166,0) 60%), radial-gradient(90% 45% at 0% 100%, rgba(59,130,246,.14) 0%, rgba(59,130,246,0) 60%), #0a1120;
+    --card:#121b2d; --surface:#18233a; --input:#0f1828; --line:#233049; --border:#2f3d5a; --ink:#e7eef8; --ink-2:#b3c0d6; --ink-muted:#7d8ba6;
+    --accent:#2dd4bf; --accent-ink:#04201c; --accent-bg:rgba(45,212,191,.14); --fixe:#60a5fa; --fixe-bg:rgba(96,165,250,.15); --variable:#fb923c; --variable-bg:rgba(251,146,60,.15);
+    --good:#34d399; --good-bg:rgba(52,211,153,.13); --warning:#fbbf24; --warning-bg:rgba(251,191,36,.13); --critical:#f87171; --critical-bg:rgba(248,113,113,.14);
+    --env:#f472b6; --env-bg:rgba(244,114,182,.15);
+    --hero:radial-gradient(120% 140% at 100% 0%,#0f766e 0%,#0b2a3a 45%,#0a1120 100%); --hero-shadow:0 14px 34px rgba(0,0,0,.45); --hero-btn:#2dd4bf; --hero-btn-ink:#04201c;
+    --tabbar:rgba(10,17,32,.94); --seg:rgba(255,255,255,.07); --sw-off:rgba(255,255,255,.18); --shadow:0 2px 14px rgba(0,0,0,.35); --toast:#1f2b44;}
+  /* C — corail (clair, fond pastel) */
+  [data-theme="c"]{--page:#fbe9e4; --page-grad:radial-gradient(120% 60% at 0% 0%, #b9e8d6 0%, rgba(185,232,214,0) 62%), radial-gradient(90% 55% at 100% 18%, #c9dcfa 0%, rgba(201,220,250,0) 64%), radial-gradient(110% 60% at 50% 100%, #fad6c0 0%, rgba(250,214,192,0) 62%), linear-gradient(180deg, #ddf2ea 0%, #e9f0fb 50%, #f8e9df 100%);
+    --card:rgba(255,255,255,.86); --surface:#fff5f1; --input:#ffffff; --line:#f1e1da; --border:#ead2c8; --ink:#2b1d24; --ink-2:#5e4650; --ink-muted:#9b8189;
+    --accent:#e0526f; --accent-ink:#fff; --accent-bg:#fde8ec; --fixe:#2a78d6; --fixe-bg:#e8f0fb; --env:#c2418f; --env-bg:#fbe6f2;
+    --hero:linear-gradient(140deg,#ff8a5b 0%,#f05a7e 60%,#c2418f 100%); --hero-shadow:0 14px 32px rgba(240,90,126,.35); --tabbar:rgba(255,255,255,.86);}
+  /* D — émeraude (clair, fond vert d'eau) */
+  [data-theme="d"]{--page:#e2f1e8; --page-grad:radial-gradient(120% 55% at 0% 0%, #c4ebd6 0%, rgba(196,235,214,0) 60%), radial-gradient(90% 50% at 100% 15%, #d6f0e6 0%, rgba(214,240,230,0) 60%), linear-gradient(180deg,#e0f1e7 0%,#eaf5ee 60%,#f0f6ef 100%);
+    --card:#fbfefc; --surface:#eef7f2; --input:#ffffff; --line:#d9ebe1; --border:#c6dfd1; --ink:#11281d; --ink-2:#3f5c4d; --ink-muted:#7f9a8b;
+    --accent:#047857; --accent-ink:#fff; --accent-bg:#dcf2e6; --fixe:#047857; --fixe-bg:#dcf2e6; --env:#a1306f; --env-bg:#f8e5ef;
+    --hero:linear-gradient(140deg,#064e3b 0%,#047857 50%,#10b981 120%); --hero-shadow:0 14px 32px rgba(4,120,87,.32); --tabbar:rgba(251,254,252,.9);}
+  /* E — graphite et or (sombre, accent doré) */
+  [data-theme="e"]{color-scheme:dark; --page:#121110; --page-grad:radial-gradient(110% 50% at 100% 0%, rgba(212,167,74,.16) 0%, rgba(212,167,74,0) 60%), radial-gradient(90% 45% at 0% 100%, rgba(212,167,74,.08) 0%, rgba(212,167,74,0) 60%), #121110;
+    --card:#1c1b19; --surface:#25231f; --input:#161513; --line:#302d28; --border:#3f3b34; --ink:#f3eee4; --ink-2:#cfc6b4; --ink-muted:#918877;
+    --accent:#d4a74a; --accent-ink:#1c1b19; --accent-bg:rgba(212,167,74,.15); --fixe:#d4a74a; --fixe-bg:rgba(212,167,74,.14); --variable:#fb923c; --variable-bg:rgba(251,146,60,.14);
+    --good:#4ade80; --good-bg:rgba(74,222,128,.12); --warning:#fbbf24; --warning-bg:rgba(251,191,36,.13); --critical:#f87171; --critical-bg:rgba(248,113,113,.14);
+    --env:#f0abfc; --env-bg:rgba(240,171,252,.13);
+    --hero:linear-gradient(150deg,#2a2722 0%,#1a1917 60%,#3a2f1c 100%); --hero-shadow:0 14px 34px rgba(0,0,0,.5); --hero-val:#f3d99b; --hero-btn:#d4a74a; --hero-btn-ink:#1c1b19;
+    --tabbar:rgba(18,17,16,.95); --seg:rgba(255,255,255,.07); --sw-off:rgba(255,255,255,.18); --shadow:0 2px 14px rgba(0,0,0,.4); --toast:#2a2722;}
+  [data-theme="e"] .solde-card{border:1px solid rgba(212,167,74,.35);}
+  [data-theme="b"] .card h3, [data-theme="e"] .card h3{padding-left:10px; border-left:3px solid var(--accent);}
   /* le choix du style */
   .favoris:empty{display:none;}
   .theme-pick{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .theme-pick button{border:2px solid var(--line); background:var(--card); border-radius:14px; padding:8px; cursor:pointer; font-family:inherit; color:var(--ink); text-align:left;}
   .theme-pick button.on{border-color:var(--accent);}
-  .theme-pick i{display:block; height:54px; border-radius:10px; margin-bottom:6px;}
+  .theme-pick .tp-fond{display:block; border-radius:12px; padding:10px; margin-bottom:6px; border:1px solid var(--line);}
+  .theme-pick i{display:block; height:40px; border-radius:9px;}
   .theme-pick b{display:block; font-size:13.5px;}
   .theme-pick em{display:block; font-style:normal; font-size:11.5px; color:var(--ink-muted);}
 </style>
@@ -2191,11 +2229,11 @@ function tabBtn(id, icon, label){
 }
 /* ---------- style choisi (mémorisé sur ce téléphone) ---------- */
 var THEMES_UI = [
-  {id:'a', label:'Bleu-violet', sous:'Moderne et lumineux', fond:'linear-gradient(135deg,#2563eb,#4f46e5 55%,#7c3aed)', barre:'#eef1f8', page:'#eef1f8'},
-  {id:'b', label:'Nuit', sous:'Sombre, accent turquoise', fond:'radial-gradient(120% 140% at 100% 0%,#155e75,#0f172a 60%)', barre:'#0f172a', page:'#f1f5f4'},
-  {id:'c', label:'Corail', sous:'Chaleureux, fond pastel', fond:'linear-gradient(140deg,#ff8a5b,#f05a7e 60%,#c2418f)', barre:'#ffffff', page:'#e3f4ee'},
-  {id:'d', label:'Émeraude', sous:'Vert, frais et calme', fond:'linear-gradient(140deg,#065f46,#059669 60%,#34d399 130%)', barre:'#ffffff', page:'#eef5f0'},
-  {id:'e', label:'Graphite et or', sous:'Noir et doré, chic', fond:'linear-gradient(150deg,#1c1c1e,#3d3428)', barre:'#1c1c1e', page:'#f5f1ea'}
+  {id:'a', label:'Bleu-violet', sous:'Clair, fond lavande', fond:'linear-gradient(135deg,#2563eb,#4f46e5 55%,#7c3aed)', apercu:'#e9ebfb', page:'#e7eafc'},
+  {id:'b', label:'Nuit', sous:'Sombre, accent turquoise', fond:'radial-gradient(120% 140% at 100% 0%,#0f766e,#0b2a3a 45%,#0a1120)', apercu:'#0a1120', page:'#0a1120'},
+  {id:'c', label:'Corail', sous:'Chaleureux, fond pastel', fond:'linear-gradient(140deg,#ff8a5b,#f05a7e 60%,#c2418f)', apercu:'#fbe9e4', page:'#ddf2ea'},
+  {id:'d', label:'Émeraude', sous:'Clair, fond vert d\'eau', fond:'linear-gradient(140deg,#064e3b,#047857 50%,#10b981 120%)', apercu:'#e2f1e8', page:'#e0f1e7'},
+  {id:'e', label:'Graphite et or', sous:'Sombre, accent doré', fond:'linear-gradient(150deg,#2a2722,#1a1917 60%,#3a2f1c)', apercu:'#121110', page:'#121110'}
 ];
 function themeActuel(){ var t = null; try{ t = localStorage.getItem('bc_theme'); }catch(e){} return THEMES_UI.some(function(x){ return x.id===t; }) ? t : 'a'; }
 function appliquerTheme(id){
@@ -2206,7 +2244,7 @@ function appliquerTheme(id){
 function themeCard(){
   var cur = themeActuel();
   return '<div class="card"><h3>Apparence</h3><div class="theme-pick">'+THEMES_UI.map(function(T){
-    return '<button type="button" class="'+(T.id===cur?'on':'')+'" data-themepick="'+T.id+'"><i style="background:'+T.fond+';"></i><b>'+T.label+'</b><em>'+T.sous+'</em></button>';
+    return '<button type="button" class="'+(T.id===cur?'on':'')+'" data-themepick="'+T.id+'"><span class="tp-fond" style="background:'+T.apercu+';"><i style="background:'+T.fond+';"></i></span><b>'+T.label+'</b><em>'+T.sous+'</em></button>';
   }).join('')+'</div><p class="hint-line">Le choix est gardé sur ce téléphone : chacun peut avoir le sien.</p></div>';
 }
 appliquerTheme(themeActuel());
