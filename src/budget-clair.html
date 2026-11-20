@@ -760,6 +760,86 @@
     #postesTable td[data-l="Consommé"] .cpt-sel{flex:1 1 auto; max-width:none; padding:2px 6px !important;}
     #postesTable td[data-l="Consommé"] .cpt-sel + .mini-bar{width:26%; flex:0 0 26%;}
   }
+
+  /* =================== Styles au choix (Réglages → Apparence), sur <html data-theme="a|b"> =================== */
+  /* commun : la carte principale devient une « carte bancaire » colorée */
+  [data-theme] .solde-card{border:0; color:#fff; padding:20px 18px 16px; border-radius:22px;}
+  [data-theme] .solde-card .solde-lbl{color:rgba(255,255,255,.78);}
+  [data-theme] .solde-card .solde-val{color:#fff !important; font-size:38px;}
+  [data-theme] .solde-card .btn-primary{background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.28);}
+  [data-theme] .solde-card .cpt-chip{background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.18); color:#fff;}
+  [data-theme] .solde-card .cpt-chip span{color:rgba(255,255,255,.85);}
+  [data-theme] .solde-card .cpt-chip b{color:#fff;}
+  [data-theme] .solde-card .cpt-chip b.neg{color:#ffd1cc !important;}
+  [data-theme] .solde-card .cpt-dot{box-shadow:0 0 0 2px rgba(255,255,255,.35);}
+  [data-theme] .solde-card .proj2 > div{color:rgba(255,255,255,.85);}
+  [data-theme] .solde-card .proj2 b{color:#fff !important;}
+  [data-theme] .solde-card .proj-line, [data-theme] .solde-card .proj-line span{color:rgba(255,255,255,.7);}
+  [data-theme] .solde-card .semaine{background:rgba(255,255,255,.14); border:0; color:#fff;}
+  [data-theme] .solde-card .semaine i{color:rgba(255,255,255,.75);}
+  [data-theme] .solde-card .semaine.retard{background:rgba(255,196,120,.22);}
+  [data-theme] .solde-card .warn-line, [data-theme] .solde-card > .hint-line{color:#ffe2b8;}
+  [data-theme] .solde-card .reste-bloc{background:#fff; color:var(--ink); border:0; border-radius:16px; padding:14px; margin-top:14px;}
+  [data-theme] .solde-card .reste-bloc .solde-lbl{color:var(--ink-muted);}
+  [data-theme] .solde-card .reste-bloc .rythme-txt{color:var(--ink-2);}
+  [data-theme] .solde-card .reste-bloc .hint-line{color:var(--ink-muted);}
+  [data-theme] .solde-card .deficit-hint{color:var(--ink);}
+  [data-theme] .solde-card .deficit-hint.soft{background:rgba(255,255,255,.92); border-color:transparent;}
+  [data-theme] .card{border-radius:18px;}
+  [data-theme] .card h3{font-size:17px;}
+  [data-theme] .tab-btn.active{border-radius:14px;}
+  /* A — bleu-violet */
+  [data-theme="a"]{--page:#eef1f8; --accent:#4f46e5; --accent-bg:#eef0ff; --fixe:#4f46e5; --fixe-bg:#eef0ff;}
+  [data-theme="a"] body{background:#eef1f8;}
+  [data-theme="a"] .solde-card{background:linear-gradient(135deg,#2563eb 0%,#4f46e5 55%,#7c3aed 100%); box-shadow:0 12px 30px rgba(79,70,229,.35);}
+  [data-theme="a"] .card{box-shadow:0 2px 10px rgba(30,41,90,.06); border-color:transparent;}
+  [data-theme="a"] .tab-btn.active{background:#eef0ff;}
+  /* B — nuit et turquoise */
+  [data-theme="b"]{--page:#f1f5f4; --accent:#0d9488; --accent-bg:#e6f6f4; --fixe:#0d9488; --fixe-bg:#e6f6f4;}
+  [data-theme="b"] body{background:#f1f5f4;}
+  [data-theme="b"] .solde-card{background:radial-gradient(120% 140% at 100% 0%,#155e75 0%,#0f172a 60%); box-shadow:0 14px 34px rgba(15,23,42,.35);}
+  [data-theme="b"] .solde-card .btn-primary{background:#14b8a6; border-color:#14b8a6;}
+  [data-theme="b"] .card{border-color:#e3e9e8;}
+  [data-theme="b"] .card h3{padding-left:10px; border-left:3px solid #14b8a6;}
+  [data-theme="b"] .tabbar{background:#0f172a; border-top:0;}
+  [data-theme="b"] .tab-btn{color:#94a3b8;}
+  [data-theme="b"] .tab-btn.active{color:#5eead4; background:rgba(94,234,212,.10);}
+  [data-theme="b"] .toast{background:#0f172a;}
+  /* C — corail, fond pastel (comme l'ancienne appli) */
+  [data-theme="c"]{--page:#e3f4ee; --accent:#e0526f; --accent-bg:#fdeef1; --fixe:#2a78d6; --fixe-bg:#e8f0fb;}
+  [data-theme="c"] body{background:#e3f4ee;}
+  [data-theme="c"] body::before{display:block; content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:radial-gradient(120% 60% at 0% 0%, #b9e8d6 0%, rgba(185,232,214,0) 62%), radial-gradient(90% 55% at 100% 18%, #c9dcfa 0%, rgba(201,220,250,0) 64%), radial-gradient(110% 60% at 50% 100%, #fad6c0 0%, rgba(250,214,192,0) 62%), linear-gradient(180deg, #ddf2ea 0%, #e9f0fb 50%, #f8e9df 100%);}
+  [data-theme="c"] .solde-card{background:linear-gradient(140deg,#ff8a5b 0%,#f05a7e 60%,#c2418f 100%); box-shadow:0 12px 30px rgba(240,90,126,.35);}
+  [data-theme="c"] .card{border-color:rgba(255,255,255,.7); box-shadow:0 6px 22px rgba(23,62,74,.08);}
+  [data-theme="c"] .tabbar{background:rgba(255,255,255,.88);}
+  [data-theme="c"] .tab-btn.active{background:#fdeef1;}
+  /* D — émeraude */
+  [data-theme="d"]{--page:#eef5f0; --accent:#047857; --accent-bg:#e3f3ea; --fixe:#047857; --fixe-bg:#e3f3ea;}
+  [data-theme="d"] body{background:#eef5f0;}
+  [data-theme="d"] .solde-card{background:linear-gradient(140deg,#065f46 0%,#059669 60%,#34d399 130%); box-shadow:0 12px 30px rgba(5,150,105,.32);}
+  [data-theme="d"] .card{border-color:transparent; box-shadow:0 2px 10px rgba(6,78,59,.07);}
+  [data-theme="d"] .tab-btn.active{background:#e3f3ea;}
+  /* E — graphite et or */
+  [data-theme="e"]{--page:#f5f1ea; --accent:#9a6b1f; --accent-bg:#f6eedf; --fixe:#9a6b1f; --fixe-bg:#f6eedf;}
+  [data-theme="e"] body{background:#f5f1ea;}
+  [data-theme="e"] .solde-card{background:linear-gradient(150deg,#1c1c1e 0%,#2c2a27 60%,#3d3428 100%); box-shadow:0 14px 34px rgba(28,28,30,.35);}
+  [data-theme="e"] .solde-card .solde-val{color:#f3d99b !important;}
+  [data-theme="e"] .solde-card .btn-primary{background:#c9a24a; border-color:#c9a24a; color:#1c1c1e;}
+  [data-theme="e"] .btn-primary{background:#9a6b1f;}
+  [data-theme="e"] .card{border-color:#ebe3d5;}
+  [data-theme="e"] .card h3{padding-left:10px; border-left:3px solid #c9a24a;}
+  [data-theme="e"] .tabbar{background:#1c1c1e; border-top:0;}
+  [data-theme="e"] .tab-btn{color:#a8a29e;}
+  [data-theme="e"] .tab-btn.active{color:#f3d99b; background:rgba(243,217,155,.10);}
+  /* le choix du style */
+  .favoris:empty{display:none;}
+  .theme-pick{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .theme-pick button{border:2px solid var(--line); background:var(--card); border-radius:14px; padding:8px; cursor:pointer; font-family:inherit; color:var(--ink); text-align:left;}
+  .theme-pick button.on{border-color:var(--accent);}
+  .theme-pick i{display:block; height:54px; border-radius:10px; margin-bottom:6px;}
+  .theme-pick b{display:block; font-size:13.5px;}
+  .theme-pick em{display:block; font-style:normal; font-size:11.5px; color:var(--ink-muted);}
 </style>
 
 <div id="app">
@@ -1457,6 +1537,27 @@ function render(){
 function tabBtn(id, icon, label){
   return '<button class="tab-btn '+(state.tab===id?'active':'')+'" data-tab="'+id+'"'+(state.tab===id?' aria-current="page"':'')+'><span class="ic">'+icon+'</span>'+label+'</button>';
 }
+/* ---------- style choisi (mémorisé sur ce téléphone) ---------- */
+var THEMES_UI = [
+  {id:'a', label:'Bleu-violet', sous:'Moderne et lumineux', fond:'linear-gradient(135deg,#2563eb,#4f46e5 55%,#7c3aed)', barre:'#eef1f8', page:'#eef1f8'},
+  {id:'b', label:'Nuit', sous:'Sombre, accent turquoise', fond:'radial-gradient(120% 140% at 100% 0%,#155e75,#0f172a 60%)', barre:'#0f172a', page:'#f1f5f4'},
+  {id:'c', label:'Corail', sous:'Chaleureux, fond pastel', fond:'linear-gradient(140deg,#ff8a5b,#f05a7e 60%,#c2418f)', barre:'#ffffff', page:'#e3f4ee'},
+  {id:'d', label:'Émeraude', sous:'Vert, frais et calme', fond:'linear-gradient(140deg,#065f46,#059669 60%,#34d399 130%)', barre:'#ffffff', page:'#eef5f0'},
+  {id:'e', label:'Graphite et or', sous:'Noir et doré, chic', fond:'linear-gradient(150deg,#1c1c1e,#3d3428)', barre:'#1c1c1e', page:'#f5f1ea'}
+];
+function themeActuel(){ var t = null; try{ t = localStorage.getItem('bc_theme'); }catch(e){} return THEMES_UI.some(function(x){ return x.id===t; }) ? t : 'a'; }
+function appliquerTheme(id){
+  var T = THEMES_UI.find(function(x){ return x.id===id; }) || THEMES_UI[0];
+  document.documentElement.setAttribute('data-theme', T.id);
+  var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content', T.page);
+}
+function themeCard(){
+  var cur = themeActuel();
+  return '<div class="card"><h3>Apparence</h3><div class="theme-pick">'+THEMES_UI.map(function(T){
+    return '<button type="button" class="'+(T.id===cur?'on':'')+'" data-themepick="'+T.id+'"><i style="background:'+T.fond+';"></i><b>'+T.label+'</b><em>'+T.sous+'</em></button>';
+  }).join('')+'</div><p class="hint-line">Le choix est gardé sur ce téléphone : chacun peut avoir le sien.</p></div>';
+}
+appliquerTheme(themeActuel());
 /* icônes de l'interface (traits simples, couleur du texte) */
 function svgI(p){ return '<svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'; }
 var ICON = {
@@ -1676,7 +1777,7 @@ function compteCard(t){
   var parJour = j.restants>0 ? reste/j.restants : null;
   var colR = reste<0 ? 'var(--critical)' : (t.varB>0 && reste < t.varB*0.15 ? 'var(--warning)' : 'var(--good)');
   var h = '<div class="card solde-card">';
-  h += '<div class="solde-top"><div><div class="solde-lbl">Disponible sur vos comptes</div>'+
+  h += '<div class="solde-top"><div><div class="solde-lbl">Disponible sur vos comptes '+aideBtn('solde')+'</div>'+
        '<div class="solde-val" style="color:'+col+';">'+eur(total)+'</div></div>'+
        '<button type="button" class="btn btn-primary btn-sm" data-govir="1">'+ICON.swap+'Virement</button></div>';
   /* un bouton par compte : solde dans sa devise */
@@ -1690,11 +1791,11 @@ function compteCard(t){
   var resteAPrevoir = Math.max(0, t.varB - t.varR - hp) + Math.max(0, t.epB - t.epR) + Math.max(0, t.invB - t.invR);
   var finTout = finMois - resteAPrevoir;
   h += '<div class="proj2">'+
-       '<div><span>Fin de mois si plus aucune dépense</span><b style="color:'+(finMois>=0?'var(--good)':'var(--critical)')+';">'+eur(finMois)+'</b></div>'+
-       '<div><span>Fin de mois si tout le prévu est dépensé</span><b style="color:'+(finTout>=0?'var(--good)':'var(--critical)')+';">'+eur(finTout)+'</b></div>'+
+       '<div><span>Fin de mois sans autre dépense</span><b style="color:'+(finMois>=0?'var(--good)':'var(--critical)')+';">'+eur(finMois)+'</b></div>'+
+       '<div><span>Fin de mois avec tout le prévu</span><b style="color:'+(finTout>=0?'var(--good)':'var(--critical)')+';">'+eur(finTout)+'</b></div>'+
        '</div>';
-  if(av.prelev||av.revenus||resteAPrevoir) h += '<div class="proj-line"><span>Déjà compté : '+(av.prelev?'−'+eur0(av.prelev)+' de prélèvements à venir':'')+(av.prelev&&av.revenus?', ':'')+(av.revenus?'+'+eur0(av.revenus)+' de revenus attendus':'')+
-       (resteAPrevoir?((av.prelev||av.revenus)?' ; ':'')+'le 2ᵉ chiffre retire aussi '+eur0(resteAPrevoir)+' encore prévus (variables, épargne)':'')+'.</span></div>';
+  if(state.aide==='solde') h += '<div class="proj-line"><span>Total de tous vos comptes (les devises sont converties en euros). Les fins de mois comptent déjà '+(av.prelev?'−'+eur0(av.prelev)+' de prélèvements à venir':'')+(av.prelev&&av.revenus?' et ':'')+(av.revenus?'+'+eur0(av.revenus)+' de revenus attendus':'')+(!av.prelev&&!av.revenus?'les prélèvements et revenus attendus':'')+
+       (resteAPrevoir?' ; la 2ᵉ retire aussi '+eur0(resteAPrevoir)+' encore prévus (variables, épargne)':'')+'.</span></div>';
   /* prélèvements de la semaine (jour noté dans « À cocher ») */
   if(j.etat==='courant'){
     var today = new Date().getDate();
@@ -1971,7 +2072,8 @@ function prelevementsCard(){
 
 /* ================= PAGE 2 — BILAN ================= */
 function pageBilan(){
-  return pdfMoisCard() + coachCard() + plier('bilan', bilanCard()) + plier('repart', repartitionCard()) + plier('pareto', paretoCard()) + plier('hist', renderHistoryCard());
+  return pdfMoisCard() + coachCard() + plier('bilan', bilanCard()) + plier('repart', repartitionCard()) + plier('pareto', paretoCard()) + plier('hist', renderHistoryCard()) +
+    ((window.BC_HOOKS && BC_HOOKS.page) ? '' : themeCard());
 }
 /* Juste après une clôture : le PDF du mois en un toucher, pour le ranger dans un dossier « Budget » */
 function pdfMoisCard(){
@@ -2196,8 +2298,7 @@ function renderAchatsCard(){
   var parCpt = {}; d.achats.forEach(function(a){ var c = cptDep(a); parCpt[c] = (parCpt[c]||0) + (+a.montant||0); });
 
   var h = '<div class="card"><h3>Dépenses du mois <span class="count">('+d.achats.length+')</span> '+aideBtn('depenses')+'</h3>';
-  h += aideTxt('depenses', 'Courses, essence, sorties… chaque dépense se déduit de son poste. Quand vous tapez le nom (ex. « Leclerc »), l\'appli choisit le poste d\'après vos dépenses passées : vous pouvez toujours le changer. Touchez une dépense de la liste pour la modifier, la séparer ou la supprimer.');
-  h += '<p class="pareto-sub"><button type="button" class="link-btn" data-gotopostes>Renommer ou ajouter un poste</button></p>';
+  h += aideTxt('depenses', 'Courses, essence, sorties… chaque dépense se déduit de son poste. Quand vous tapez le nom (ex. « Leclerc »), l\'appli choisit le poste d\'après vos dépenses passées : vous pouvez toujours le changer. Touchez une dépense de la liste pour la modifier, la séparer ou la supprimer. « ☆ Favori » garde une dépense fréquente pour la retrouver en un toucher.<br><button type="button" class="link-btn" data-gotopostes>Renommer ou ajouter un poste</button>');
 
   /* favoris : un toucher pré-remplit la saisie */
   var fav = d.favoris||[];
@@ -2211,7 +2312,7 @@ function renderAchatsCard(){
     });
     h += '<button class="fav-edit" id="favEditBtn">'+(state.favEdit?'Terminé':'✎ Gérer')+'</button>';
   } else {
-    h += '<span class="hint-line" style="margin:0;">Astuce : remplissez une dépense fréquente puis touchez « ☆ Favori » pour la retrouver en un toucher.</span>';
+
   }
   h += '</div>';
 
@@ -3950,6 +4051,9 @@ function wireEvents(){
     var asc = state.history.slice().sort(function(a,b){ return String(a.id).localeCompare(String(b.id)); });
     telechargerPdf(asc, 'Bilans mensuels.pdf', dlAll);
   };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-themepick]'), function(b){
+    b.onclick = function(){ var id = b.getAttribute('data-themepick'); try{ localStorage.setItem('bc_theme', id); }catch(e){} appliquerTheme(id); render(); };
+  });
   /* ---------- comptes : ouvrir, modifier, ajouter, masquer ---------- */
   function allerComptes(){ state.tab = 'comptes'; try{ localStorage.setItem('bc_tab', 'comptes'); }catch(e){} }
   Array.prototype.forEach.call(document.querySelectorAll('[data-cptgo]'), function(b){

@@ -440,6 +440,7 @@ window.BC_HOOKS = {
       if(!proprio) h += '<div class="tf-row" style="margin-top:10px;"><button class="btn-mini" id="rgQuit">Quitter ce budget</button></div>';
       h += '<div class="rg-msg" id="rgFoyerMsg"></div></div>';
     }
+    h += themeCard();
     /* sauvegarde */
     h += '<div class="card"><h3>Copie de secours</h3><p class="hint-line" style="margin-top:0;">Un fichier (.json) avec toutes les données du budget, à garder dans vos Fichiers. Les bilans lisibles (PDF) se téléchargent dans l\'onglet Bilan.</p>'+
       '<div class="tf-row" style="margin-top:10px;"><button class="btn btn-ghost" id="fbExport">Télécharger la copie de secours</button></div><div class="rg-msg" id="fbExportMsg"></div></div>';
