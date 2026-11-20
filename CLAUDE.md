@@ -28,8 +28,8 @@ Toute l'interface est **en français**.
 ```
 src/budget-clair.html     SOURCE UNIQUE de l'appli (version « artefact Claude », sans <html>/<head>/<body>)
 build/build_firebase.py   fabrique la version page web (Firebase, comptes, foyers) à partir de la source
-index.html                ANCIENNE appli en ligne (version d'avant le 19/11/2026), gardée telle quelle pendant l'essai
-essai/index.html          NOUVELLE version, en essai (…/Budget/essai/) — générée par le script, ne pas modifier à la main
+index.html                l'appli en ligne (NOUVELLE version depuis la bascule du 20/11/2026), générée par le script
+essai/index.html          version d'essai (…/Budget/essai/), gardée pour tester avant de publier — générée par le script
 apple-touch-icon.png      icône iPhone (180×180, € blanc sur bleu)
 firestore.rules           COPIE DE RÉFÉRENCE des règles Firestore (adresses factices : voir Déploiement)
 tests/stub-claude.js      fausse base de données pour tester la source dans un navigateur
@@ -44,8 +44,8 @@ La version « ami » (`autres/`, stockage local) n'est plus dans le dépôt : la
 Commandes :
 
 ```bash
-python3 build/build_firebase.py --essai  # src/budget-clair.html -> essai/index.html (pendant la période d'essai)
-python3 build/build_firebase.py          # -> index.html : SEULEMENT le jour où l'utilisateur valide la bascule
+python3 build/build_firebase.py          # src/budget-clair.html -> index.html (la vraie appli)
+python3 build/build_firebase.py --essai  # -> essai/index.html (version d'essai : jamais les données d'origine)
 node tests/smoke.js                      # Playwright (déjà installé dans l'environnement cloud)
 node tests/comptes.js
 node tests/auto.js
@@ -59,7 +59,14 @@ Vérification rapide de la syntaxe : extraire les blocs `<script>` dans un fichi
 
 ## Déploiement : deux versions
 
-### 0. Période d'essai (depuis le 20/11/2026)
+### 0. Bascule faite le 20/11/2026 (à la demande de l'utilisateur)
+
+- `index.html` (adresse habituelle) = nouvelle version, sur les **données d'origine** (portefeuille « Nous »). Sans choix mémorisé sur le téléphone, elle ouvre d'abord « Nous » (et pas un portefeuille d'essai). Un portefeuille d'essai peut être supprimé dans Réglages (créateur seul membre, s'il en reste un autre).
+- Vérifié avant la bascule : des données au format de l'ancienne appli (mois archivés, carte/espèces, retraits d'espèces) donnent les mêmes soldes et s'affichent sans erreur (`tests/comptes.js`, `tests/web.test.js` 38 vérifications).
+- La version d'essai (`essai/`) reste disponible pour tester les prochaines modifications avant de les publier.
+- ⚠️ Ne plus utiliser l'ancienne appli (gardée dans l'historique git) : elle ne connaît pas les comptes multiples ni les virements entre portefeuilles.
+
+### Période d'essai (19–20/11/2026, terminée)
 
 - L'utilisateur garde l'**ancienne appli** à son adresse habituelle (`index.html` à la racine, inchangé) et essaie la **nouvelle** à `…/Budget/essai/`.
 - La version d'essai (`--essai`) **n'ouvre jamais les données d'origine** : chacun y crée un budget d'essai (foyer) et peut y importer une copie de secours exportée depuis l'ancienne appli. Bandeau « Version d'essai » en haut. Mémoire locale séparée (`bc_ctx_essai_<uid>`).

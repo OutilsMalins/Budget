@@ -265,6 +265,8 @@ function resoudre(u){
     if(!L.length) return {mode:'aucun'};
     var choix = memoChoix(u), P = L.find(function(x){ return x.id===choix; });
     if(P) return P;
+    /* jamais choisi sur ce téléphone : le budget d'origine passe avant les portefeuilles d'essai */
+    var anc = L.find(function(x){ return x.id==='ancien'; }); if(anc) return anc;
     return fdb.doc('users/'+u.uid).get().then(function(s2){ var f = s2.exists && s2.data().foyer; return L.find(function(x){ return x.id===f; }) || L[0]; }, function(){ return L[0]; });
   }).then(function(P){
     if(P.mode==='aucun') return P;
@@ -537,7 +539,12 @@ window.BC_HOOKS = {
         if(RG.inviteTxt) h += '<div class="invit-box">'+esc(RG.inviteTxt)+'</div><div class="tf-row" style="margin-top:8px;"><button class="btn-mini" id="rgInvShare">Envoyer ce message…</button><button class="btn-mini" id="rgInvCopy">Copier</button></div>';
         h += '<p class="hint-line">L\'appli n\'envoie pas d\'e-mail d\'invitation : transmettez le message (SMS, WhatsApp, e-mail…).</p>';
       }
-      if(!proprio) h += '<div class="tf-row" style="margin-top:10px;"><button class="btn-mini" id="rgQuit">Quitter ce budget</button></div>';
+      if(!proprio) h += '<div class="tf-row" style="margin-top:10px;"><button class="btn-mini" id="rgQuit">Quitter ce portefeuille</button></div>';
+      else if((F.membres||[]).length===1 && (CTX.liste||[]).length>1){
+        h += RG.pfSuppr
+          ? '<div class="rg-msg ko" style="margin-top:12px;">Supprimer « '+esc(F.nom||'')+' » et tout ce qu\'il contient (comptes, dépenses, historique) ? C\'est définitif.</div><div class="tf-row" style="margin-top:8px;"><button class="btn btn-danger btn-sm" id="pfSupprOk">Oui, supprimer</button><button class="btn btn-ghost btn-sm" id="pfSupprNo">Annuler</button></div>'
+          : '<div class="tf-row" style="margin-top:10px;"><button class="btn-mini" id="pfSuppr">Supprimer ce portefeuille…</button></div>';
+      }
       h += '<div class="rg-msg" id="rgFoyerMsg"></div></div>';
     }
     /* sauvegarde */
@@ -638,6 +645,15 @@ window.BC_HOOKS = {
       if(!confirm('Quitter ce budget ? Vous ne le verrez plus (les autres membres le gardent).')) return;
       quitterFoyer().then(function(){ localStorage.removeItem(memoKey(USER)); location.reload(); }).catch(function(e){ msg('rgFoyerMsg', msgErr(e), 'ko'); });
     };
+    var ps1 = $('pfSuppr'); if(ps1) ps1.onclick = function(){ RG.pfSuppr = true; render(); };
+    var ps2 = $('pfSupprNo'); if(ps2) ps2.onclick = function(){ RG.pfSuppr = false; render(); };
+    var ps3 = $('pfSupprOk');
+    if(ps3) ps3.onclick = function(){
+      ps3.disabled = true;
+      var autre = (CTX.liste||[]).find(function(x){ return x.id!==CTX.pfId; });
+      supprimerPortefeuille().then(function(){ RG.pfSuppr = false; chargement('Portefeuille supprimé…'); changerPortefeuille(autre ? autre.id : ''); })
+        .catch(function(e){ ps3.disabled = false; msg('rgFoyerMsg', msgErr(e), 'ko'); });
+    };
     var sp = $('rgSuppr'); if(sp) sp.onclick = function(){ RG.suppr = true; RG.supprMsg = ''; render(); };
     var sn = $('rgSupprNo'); if(sn) sn.onclick = function(){ RG.suppr = false; RG.supprMsg = ''; render(); };
     var so = $('rgSupprOk');
@@ -664,6 +680,10 @@ function quitterFoyer(){
 function supprimerTout(){
   var seul = CTX.foyer && (CTX.foyer.membres||[]).length===1;
   if(!seul) return quitterFoyer();
+  return supprimerPortefeuille().then(function(){ return fdb.doc('users/'+USER.uid).delete().catch(function(){}); });
+}
+/* efface le portefeuille ouvert (le créateur, seul membre) : ses données, ses invitations, puis sa fiche */
+function supprimerPortefeuille(){
   var refs = [];
   return Promise.all(COLLS.map(function(c){ return dbw.collection(c).get().then(function(qs){ qs.docs.forEach(function(d){ refs.push(d.ref); }); }); }))
     .then(function(){ return fdb.collection('invitations').where('foyer','==',CTX.foyerId).get().then(function(qs){ qs.docs.forEach(function(d){ refs.push(d.ref); }); }).catch(function(){}); })
@@ -672,8 +692,7 @@ function supprimerTout(){
       for(var i=0; i<refs.length; i+=400){ (function(ch){ p = p.then(function(){ var b = fdb.batch(); ch.forEach(function(r){ b.delete(r); }); return b.commit(); }); })(refs.slice(i, i+400)); }
       return p;
     })
-    .then(function(){ return fdb.doc('foyers/'+CTX.foyerId).delete(); })
-    .then(function(){ return fdb.doc('users/'+USER.uid).delete().catch(function(){}); });
+    .then(function(){ return fdb.doc('foyers/'+CTX.foyerId).delete(); });
 }
 })();
 </script>
