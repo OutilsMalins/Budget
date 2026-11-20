@@ -1,8 +1,13 @@
 """Construit la version « page web » de l'appli : Firebase (comptes + base Firestore)
 à la place du stockage de Claude.
 
-Usage : python3 build/build_firebase.py              -> écrit index.html (racine du dépôt, publié par GitHub Pages)
-        python3 build/build_firebase.py <sortie.html> [<source.html>]
+Usage : python3 build/build_firebase.py --essai      -> écrit essai/index.html (version d'essai, voir plus bas)
+        python3 build/build_firebase.py              -> écrit index.html (racine du dépôt, publié par GitHub Pages)
+        python3 build/build_firebase.py [--essai] <sortie.html> [<source.html>]
+
+Version d'essai (--essai) : publiée à côté de l'ancienne appli (adresse …/Budget/essai/).
+Elle n'ouvre JAMAIS les données d'origine (racine de la base) : chacun y crée un
+budget d'essai (foyer), où il peut importer une copie de secours de ses vraies données.
 
 Ce que la version page web ajoute :
 - connexion, création de compte, mot de passe oublié ;
@@ -10,10 +15,12 @@ Ce que la version page web ajoute :
 - les données d'origine (à la racine de la base) restent à leur place et servent
   telles quelles aux deux comptes autorisés par les règles (rien n'est copié) ;
 - page Réglages : compte, foyer, invitations, copie de secours, suppression du compte."""
-import sys, os
+import sys, os, shutil
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-src_path = sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, 'src', 'budget-clair.html')
-out_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'index.html')
+ESSAI = '--essai' in sys.argv
+args = [a for a in sys.argv[1:] if a != '--essai']
+src_path = args[1] if len(args) > 1 else os.path.join(ROOT, 'src', 'budget-clair.html')
+out_path = args[0] if args else os.path.join(ROOT, 'essai' if ESSAI else '', 'index.html')
 src = open(src_path, encoding='utf-8').read()
 s = src
 
@@ -38,7 +45,8 @@ def rep(a, b, n=1):
 a = s.index('<link rel="apple-touch-icon"')
 b = s.index('>', a) + 1
 s = s[:a] + '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<meta name="apple-mobile-web-app-status-bar-style" content="default">' + s[b:]
-rep('<meta name="apple-mobile-web-app-title" content="Budget Clair">', '<meta name="apple-mobile-web-app-title" content="Budget">')
+rep('<meta name="apple-mobile-web-app-title" content="Budget Clair">', '<meta name="apple-mobile-web-app-title" content="'+('Budget essai' if ESSAI else 'Budget')+'">')
+if ESSAI: rep('<title>Budget</title>', '<title>Budget (essai)</title>')
 
 # ---------- premier lancement d'un budget vide : importer une sauvegarde, ou partir de zéro
 rep("""      '<div class="empty"><div class="em">💶</div><p><strong>Aucun budget initialisé.</strong></p>'+
@@ -81,6 +89,7 @@ EXTRA_CSS = r"""
   .invit-box{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.5; white-space:pre-line; margin-top:8px;}
   .danger-zone{border-color:#f1c9c4;}
   .btn-danger{background:var(--critical); color:#fff;}
+  .essai-bandeau{position:sticky; top:0; z-index:30; background:#fdf3e1; color:#7a4a00; font-size:12.5px; font-weight:600; text-align:center; padding:6px 10px calc(6px); border-bottom:1px solid #f1dcb5;}
 </style>
 """
 
@@ -92,6 +101,8 @@ SHIM = r"""
 /* ===== Firebase : comptes + base de données, à la place du stockage de Claude ===== */
 (function(){
 var CONFIG = %(cfg)s;
+/* version d'essai : jamais les données d'origine, seulement des budgets d'essai (foyers) */
+var ESSAI = %(essai)s;
 var ok = !!window.firebase;
 var fdb = null, auth = null;
 if(ok){
@@ -200,7 +211,7 @@ function showLogin(msg, okMsg){
 }
 
 /* ================= quel budget ouvrir ? ================= */
-function memoKey(u){ return 'bc_ctx_'+u.uid; }
+function memoKey(u){ return (ESSAI ? 'bc_ctx_essai_' : 'bc_ctx_')+u.uid; }
 function memoCtx(u, c){ try{ if(c) localStorage.setItem(memoKey(u), JSON.stringify(c)); else return JSON.parse(localStorage.getItem(memoKey(u))||'null'); }catch(e){ return null; } }
 function lireFoyer(fid){
   return fdb.doc('foyers/'+fid).get().then(function(d){ return d.exists ? {id:d.id, data:d.data()} : null; }).catch(function(){ return null; });
@@ -221,6 +232,7 @@ function lireInvitation(u){
   return fdb.doc('invitations/'+em).get().then(function(d){ return d.exists ? d.data() : null; }).catch(function(){ return null; });
 }
 function resoudre(u){
+  if(ESSAI) return chercherFoyer(u).then(function(f){ return f ? {mode:'foyer', base:'foyers/'+f.id+'/', foyerId:f.id} : {mode:'aucun'}; });
   /* 1. les données d'origine (racine) : seulement pour les comptes autorisés par les règles */
   return fdb.doc('config/main').get().then(function(){ return {mode:'ancien', base:''}; }, function(err){
     if(!(err && err.code==='permission-denied')){
@@ -303,6 +315,7 @@ function showBienvenue(){
       '<div class="card"><h3>'+(inv ? 'Ou commencer votre propre budget' : 'Créer votre budget')+'</h3>'+
       '<p class="hint-line" style="margin-top:0;">Un budget privé, que vous pourrez partager plus tard (conjoint, colocataire…) depuis les Réglages.</p>'+
       '<div class="tf-row" style="margin-top:12px;"><button class="btn '+(inv?'btn-ghost':'btn-primary')+'" id="bvCreer">Créer mon budget</button></div>'+
+      (ESSAI ? '<p class="hint-line"><b>Version d\'essai :</b> ce budget est séparé de votre vrai budget, qui n\'est pas touché. Pour essayer avec vos chiffres : dans l\'ancienne appli, onglet Bilan → « Copie de secours », puis ici « Créer mon budget » → « Importer le fichier ».</p>' : '')+
       '<p class="hint-line">Quelqu\'un doit vous inviter dans son budget ? Demandez-lui de vous inviter avec l\'adresse <b>'+esc(emailDe(USER))+'</b>, puis <button type="button" class="link-btn" id="bvRe">actualisez</button>.</p>'+
       '<div class="rg-msg" id="bvMsg"></div></div>'+
       '<div class="auth-alt"><button type="button" class="link-btn" id="bvOut">Se déconnecter</button></div></div>';
@@ -548,12 +561,17 @@ function supprimerTout(){
 }
 })();
 </script>
-""" % {'v': FB_VERSION, 'cfg': FIREBASE_CONFIG}
+""" % {'v': FB_VERSION, 'cfg': FIREBASE_CONFIG, 'essai': 'true' if ESSAI else 'false'}
 
 head_end = s.index('</style>') + len('</style>')
 body_start = s.index('<script>')
 doc = ('<!doctype html>\n<html lang="fr">\n<head>\n<meta charset="utf-8">\n'
        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-       + s[:head_end] + EXTRA_CSS + '\n</head>\n<body>' + s[head_end:body_start] + SHIM + s[body_start:] + '\n</body>\n</html>\n')
+       + s[:head_end] + EXTRA_CSS + '\n</head>\n<body>'
+       + ('<div class="essai-bandeau">Version d\'essai · votre vrai budget n\'est pas touché</div>' if ESSAI else '')
+       + s[head_end:body_start] + SHIM + s[body_start:] + '\n</body>\n</html>\n')
+os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
 open(out_path, 'w', encoding='utf-8').write(doc)
+if ESSAI and not args:   # l'icône à côté de la page d'essai
+    shutil.copyfile(os.path.join(ROOT, 'apple-touch-icon.png'), os.path.join(ROOT, 'essai', 'apple-touch-icon.png'))
 print('ok', len(doc))

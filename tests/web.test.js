@@ -23,6 +23,9 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   execFileSync('python3', [path.join(ROOT, 'build', 'build_firebase.py'), path.join(out, 'index.html')]);
   let html = fs.readFileSync(path.join(out, 'index.html'), 'utf8').replace(/budget-familial-713e2/g, PROJET);
   html = html.replace('<head>', '<head><script>window.__BC_EMU = true;</script>');
+  execFileSync('python3', [path.join(ROOT, 'build', 'build_firebase.py'), '--essai', path.join(out, 'essai.html')]);
+  const htmlEssai = fs.readFileSync(path.join(out, 'essai.html'), 'utf8').replace(/budget-familial-713e2/g, PROJET)
+    .replace('<head>', '<head><script>window.__BC_EMU = true;</script>');
   const rules = fs.readFileSync(path.join(ROOT, 'firestore.rules'), 'utf8').replace('adresse-1@exemple.fr', ORIG);
 
   /* règles + données d'origine dans l'émulateur */
@@ -38,11 +41,12 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   /* petit serveur : la page + les fichiers Firebase locaux (pas d'accès à gstatic ici) */
   const NM = path.join(__dirname, 'node_modules', 'firebase');
   const srv = http.createServer((req, res) => {
+    if(req.url.startsWith('/essai/')){ res.writeHead(200, {'content-type': 'text/html; charset=utf-8'}); return res.end(htmlEssai); }
     if(req.url === '/' || req.url.startsWith('/index.html')){ res.writeHead(200, {'content-type': 'text/html; charset=utf-8'}); return res.end(html); }
     res.writeHead(404); res.end();
   }).listen(5077);
   const browser = await chromium.launch();
-  async function nouvellePage(){
+  async function nouvellePage(chemin){
     const ctx = await browser.newContext({viewport: {width: 390, height: 844}});
     const p = await ctx.newPage();
     p.errs = []; p.on('pageerror', e => p.errs.push(e.message));
@@ -51,7 +55,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
       route.fulfill({status: 200, contentType: 'text/javascript', body: fs.readFileSync(path.join(NM, f))});
     });
     await p.route(/cdn\.jsdelivr\.net/, r => r.abort());
-    await p.goto('http://127.0.0.1:5077/');
+    await p.goto('http://127.0.0.1:5077' + (chemin || '/'));
     return p;
   }
   async function creerCompte(p, email){
@@ -105,6 +109,20 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   const B = await nouvellePage();
   await creerCompte(B, 'bob@test.fr');
   verif('Bob : écran de bienvenue sans invitation', await jusqua(async () => !!(await B.$('#bvCreer')) && !(await B.$('#bvInvOk'))));
+  /* Bob importe une copie de secours au format de l'ancienne appli */
+  const mois = new Date().toISOString().slice(0, 7);
+  const copie = {app: 'budget-clair', docs: {
+    'config/main': {monthLabel: 'Importé', moisCle: mois, report: {compte: 500, especes: 20}, revenus: [{id: 'r1', label: 'Salaire', mode: 'compte', budget: 1000, reel: 1000, recu: true}],
+      lignes: [{id: 'l1', label: 'Courses', type: 'variable', paiement: 'carte', budget: 300, reel: 0}], epargnes: []},
+    'depenses/a1': {mois, date: mois + '-02', label: 'Leclerc', posteId: 'l1', montant: 50, paiement: 'carte'},
+    'transferts/t1': {mois, date: mois + '-03', sens: 'retrait', montant: 30}}};
+  fs.writeFileSync(path.join(out, 'copie.json'), JSON.stringify(copie));
+  await B.click('#bvCreer');
+  await B.waitForSelector('#impFile', {state: 'attached'});
+  await B.setInputFiles('#impFile', path.join(out, 'copie.json'));
+  verif('Bob : copie de secours importée', await jusqua(async () => (await B.inputValue('#monthInput').catch(() => '')) === 'Importé', 12000));
+  await B.click('[data-tab="comptes"]');
+  verif('Bob : soldes repris de la copie (compte 1 420 €, espèces 50 €)', await jusqua(async () => { const t = (await B.textContent('body')).replace(/\s/g, ''); return t.includes('1420,00€') && t.includes('50,00€'); }));
 
   /* --- compte d'origine : retrouve les données d'origine --- */
   const O = await nouvellePage();
@@ -116,7 +134,23 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   await O.click('#profBtn');
   verif('compte d\'origine : pas d\'invitation possible', await jusqua(async () => (await O.textContent('body')).includes('Budget d\'origine') && !(await O.$('#rgInvEmail'))));
 
-  for(const [nom, p] of [['Alice', A], ['Carole', C], ['Bob', B], ['Origine', O]]) verif('aucune erreur JS (' + nom + ')', !p.errs.length, p.errs.join(' | '));
+  /* --- version d'essai : le compte d'origine n'y voit PAS les données d'origine --- */
+  const E = await nouvellePage('/essai/');
+  await E.waitForSelector('#lgEmail');
+  await E.fill('#lgEmail', ORIG); await E.fill('#lgPass', 'motdepasse1'); await E.click('#lgBtn');
+  verif('essai : bandeau « version d\'essai »', await jusqua(async () => (await E.textContent('body')).includes('Version d\'essai')));
+  verif('essai : compte d\'origine → budget d\'essai à créer (données d\'origine pas ouvertes)', await jusqua(() => E.$('#bvCreer')));
+  await E.click('#bvCreer');
+  verif('essai : budget d\'essai créé', await jusqua(() => E.$('#seedBtn')));
+  await E.click('#seedBtn');
+  verif('essai : l\'appli s\'ouvre sur le budget d\'essai', await jusqua(async () => !!(await E.$('[data-tab="comptes"]')) && (await E.inputValue('#monthInput')) !== 'Budget d\'origine'));
+  await E.fill('#qaLabel', 'Essai'); await E.fill('#qaMontant', '99'); await E.click('#qaAdd');
+  await attendre(800);
+  let racine2 = null, depRacine = 0;
+  await env.withSecurityRulesDisabled(async ctx => { const f = ctx.firestore(); racine2 = (await f.doc('config/main').get()).data(); depRacine = (await f.collection('depenses').get()).size; });
+  verif('essai : données d\'origine toujours intactes', racine2.monthLabel === 'Budget d\'origine' && racine2.report.compte === 1234 && !racine2.comptes && depRacine === 0);
+
+  for(const [nom, p] of [['Alice', A], ['Carole', C], ['Bob', B], ['Origine', O], ['Essai', E]]) verif('aucune erreur JS (' + nom + ')', !p.errs.length, p.errs.join(' | '));
   await browser.close(); srv.close(); await env.cleanup();
   console.log('\n' + (n - ko) + ' / ' + n + ' vérifications réussies');
   process.exit(ko ? 1 : 0);

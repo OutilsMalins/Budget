@@ -27,21 +27,23 @@ Toute l'interface est **en français**.
 ```
 src/budget-clair.html     SOURCE UNIQUE de l'appli (version « artefact Claude », sans <html>/<head>/<body>)
 build/build_firebase.py   fabrique la version page web (Firebase, comptes, foyers) à partir de la source
-index.html                version page web générée, à la racine (GitHub Pages) — ne pas modifier à la main
+index.html                ANCIENNE appli en ligne (version d'avant le 19/11/2026), gardée telle quelle pendant l'essai
+essai/index.html          NOUVELLE version, en essai (…/Budget/essai/) — générée par le script, ne pas modifier à la main
 apple-touch-icon.png      icône iPhone (180×180, € blanc sur bleu)
 firestore.rules           COPIE DE RÉFÉRENCE des règles Firestore (adresses factices : voir Déploiement)
 tests/stub-claude.js      fausse base de données pour tester la source dans un navigateur
 tests/smoke.js            test Playwright : 4 onglets, erreurs JS, boucle de rendu, captures
 tests/comptes.js          comptes multiples : anciennes données = mêmes soldes, CHF, virements, clôture
 tests/rules.test.js       règles Firestore dans l'émulateur (40 cas)
-tests/web.test.js         page web + émulateur : inscription, foyer, invitation, données d'origine (19 vérifications)
+tests/web.test.js         page web + émulateur : inscription, foyer, invitation, import, données d'origine, version d'essai (27 vérifications)
 ```
 La version « ami » (`autres/`, stockage local) n'est plus dans le dépôt : la page web ouverte à tous la remplace.
 
 Commandes :
 
 ```bash
-python3 build/build_firebase.py          # src/budget-clair.html -> index.html
+python3 build/build_firebase.py --essai  # src/budget-clair.html -> essai/index.html (pendant la période d'essai)
+python3 build/build_firebase.py          # -> index.html : SEULEMENT le jour où l'utilisateur valide la bascule
 node tests/smoke.js                      # Playwright (déjà installé dans l'environnement cloud)
 node tests/comptes.js
 node tests/smoke.js sauvegarde.json      # avec une « copie de secours » exportée par l'appli
@@ -53,6 +55,14 @@ npm run test:web                         # page web complète (Firebase local se
 Vérification rapide de la syntaxe : extraire les blocs `<script>` dans un fichier `.js`, puis `node --check`.
 
 ## Déploiement : deux versions
+
+### 0. Période d'essai (depuis le 20/11/2026)
+
+- L'utilisateur garde l'**ancienne appli** à son adresse habituelle (`index.html` à la racine, inchangé) et essaie la **nouvelle** à `…/Budget/essai/`.
+- La version d'essai (`--essai`) **n'ouvre jamais les données d'origine** : chacun y crée un budget d'essai (foyer) et peut y importer une copie de secours exportée depuis l'ancienne appli. Bandeau « Version d'essai » en haut. Mémoire locale séparée (`bc_ctx_essai_<uid>`).
+- Ne pas faire tourner la nouvelle version sur les données d'origine en même temps que l'ancienne : l'ancienne ne connaît pas les comptes multiples (virements entre comptes comptés comme retraits d'espèces, report d'un seul compte à la clôture).
+- **Bascule** (quand l'utilisateur le demande) : `python3 build/build_firebase.py` → `index.html`, puis supprimer `essai/` ou le garder pour les prochains essais.
+- Les règles Firestore doivent déjà autoriser les foyers pour que l'essai fonctionne (voir plus bas).
 
 ### 1. Page web, la version principale
 
