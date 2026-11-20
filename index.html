@@ -829,6 +829,34 @@
   .ordre-row span{flex:1 1 auto; min-width:0;}
   .ord-btn{flex:0 0 auto; width:40px; height:36px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--accent); font-size:18px; font-weight:700; cursor:pointer;}
   .ord-btn:disabled{opacity:.3; cursor:default;}
+
+  /* titre du mois (un vrai titre : texte net) + marge sous la barre d'état de l'iPhone */
+  .hero > div:first-child{position:relative;}
+  .month-title{display:inline; font-size:26px; font-weight:750; letter-spacing:-0.02em; color:var(--ink); margin:0; line-height:1.2;}
+  [data-theme] .month-title{color:var(--ink);}
+  .month-pen{border:0; background:transparent; color:var(--ink-muted); font-size:16px; padding:2px 6px; margin-left:4px; cursor:pointer; vertical-align:3px;}
+  #app{padding-top:calc(env(safe-area-inset-top, 0px) + 22px);}
+  @media (max-width:700px){ #app{padding-top:calc(env(safe-area-inset-top, 0px) + 20px);} }
+  .pf-wrap{top:calc(env(safe-area-inset-top, 0px) + 2px);}
+  /* aide épargne / investissement */
+  .guide .sub-t{margin-top:16px;}
+  .guide-calc{background:var(--warning-bg); border-radius:12px; padding:10px 12px; margin:8px 0;}
+  .guide-calc.ok{background:var(--good-bg);}
+  .guide-calc div{font-size:12px; color:var(--ink-2);} .guide-calc b{display:block; font-size:18px; margin:2px 0;} .guide-calc span{font-size:13px; color:var(--ink-2);}
+  details.guide-sec{border-top:1px solid var(--line); padding:6px 0 0;}
+  details.guide-sec > summary{font-size:14.5px; padding:4px 0 6px;}
+  .fiche{background:var(--surface); border-radius:12px; padding:10px 12px; font-size:13.5px; line-height:1.5; color:var(--ink-2);}
+  .fiche-t{font-weight:700; color:var(--ink); margin-bottom:4px;} .fiche p{margin:0 0 6px;} .fiche-pour{color:var(--ink);}
+  .guide-astuce{margin-top:14px; background:var(--accent-bg); color:var(--ink); border-radius:12px; padding:10px 12px; font-size:13px; line-height:1.5;}
+  .guide-avert{margin:16px 0 0; font-size:11.5px; line-height:1.5; color:var(--ink-muted); border-top:1px solid var(--line); padding-top:10px;}
+  .gq{margin-top:12px;} .gq-q{font-size:14px; font-weight:600; color:var(--ink); margin-bottom:6px;}
+  .gq-o{display:flex; flex-wrap:wrap; gap:6px;}
+  .gq-b{border:1px solid var(--border); background:var(--card); color:var(--ink-2); border-radius:100px; padding:7px 12px; font:600 13px -apple-system, system-ui, sans-serif; cursor:pointer; text-align:left;}
+  .gq-b.on{background:var(--accent); color:var(--accent-ink); border-color:transparent;}
+  .guide-res{margin-top:16px; background:var(--surface); border-radius:14px; padding:12px; font-size:13.5px; line-height:1.5; color:var(--ink);}
+  .guide-res p{margin:0 0 8px;}
+  .tab-btn{font-size:10px; padding-left:1px; padding-right:1px;}
+  .tab-btn .i{width:22px; height:22px;}
   /* =================== Styles au choix (Réglages → Apparence), sur <html data-theme="a…e"> ===================
      Chaque style redéfinit TOUTES les couleurs (variables) : fond, cartes, textes, lignes, accent.
      Les règles « [data-theme] … » remplacent les couleurs écrites en dur plus haut. */
@@ -2412,17 +2440,18 @@ function render(){
   var html = '';
 
   /* en-tête commun aux deux pages */
-  html += '<div class="hero"><div><input class="month-edit" id="monthInput" value="'+escapeAttr(d.monthLabel)+'"><div class="sub">'+({saisie:'Vos dépenses et ce qu\'il reste à cocher.', comptes:'Vos comptes, vos virements.', reglages:'Automatismes, apparence et compte.', budget:'Votre budget prévu : revenus, postes et placements.', bilan:'Le point sur le mois et l\'historique.'}[state.tab]||'')+'</div></div>'+
+  html += '<div class="hero"><div>'+(state.editMois ? '<input class="month-edit" id="monthInput" value="'+escapeAttr(d.monthLabel)+'">' : '<h1 class="month-title" id="monthTitle">'+escHtml(d.monthLabel)+'</h1><button type="button" class="month-pen" id="monthPen" aria-label="Renommer le mois" title="Renommer le mois">✎</button>')+'<div class="sub">'+({saisie:'Vos dépenses et ce qu\'il reste à cocher.', comptes:'Vos comptes, vos virements.', reglages:'Automatismes, apparence et compte.', epargne:'Vos livrets, vos placements, et de l\'aide pour choisir.', budget:'Votre budget prévu : revenus, postes et placements.', bilan:'Le point sur le mois et l\'historique.'}[state.tab]||'')+'</div></div>'+
     (state.tab==='bilan' ? '<div class="hero-actions"><button class="btn btn-ghost" id="closeMonthBtn">Clôturer '+escapeAttr(d.monthLabel)+'</button></div>' : '')+
     (window.BC_HOOKS && BC_HOOKS.heroBtn ? BC_HOOKS.heroBtn() : '')+'</div>';
   if(state.confirmClose && state.tab==='bilan') html += closePanel();
 
   /* version page web : une page « Réglages » (compte, foyer, sauvegarde) fournie par BC_HOOKS */
-  html += ({saisie:pageSaisie, comptes:pageComptes, budget:pageBudget, bilan:pageBilan, reglages:pageReglagesBase}[state.tab] || pageSaisie)();
+  html += ({saisie:pageSaisie, comptes:pageComptes, epargne:pageEpargne, budget:pageBudget, bilan:pageBilan, reglages:pageReglagesBase}[state.tab] || pageSaisie)();
 
   html += '<nav class="tabbar">'+
     tabBtn('saisie', ICON.home, 'Mois')+
     tabBtn('comptes', ICON.bank, 'Comptes')+
+    tabBtn('epargne', ICON.grow, 'Épargne')+
     tabBtn('budget', ICON.list, 'Budget')+
     tabBtn('bilan', ICON.chart, 'Bilan')+
     tabBtn('reglages', ICON.gear, 'Réglages')+
@@ -2473,6 +2502,7 @@ var ICON = {
   swapV: svgI('<path d="M8 4v14l-3.5-3.5M16 20V6l3.5 3.5"/>'),
   trash: svgI('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
   plus: svgI('<path d="M12 5v14M5 12h14"/>'),
+  grow: svgI('<path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/><path d="M3 21h18"/>'),
   gear: svgI('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>')
 };
 
@@ -2586,8 +2616,7 @@ function pageSaisie(){
     ['solde', 'Comptes et reste à dépenser', function(){ return compteCard(t); }],
     ['sugg', 'Suggestions', function(){ return suggestionsCard(t); }],
     ['dep', 'Dépenses du mois', renderAchatsCard],
-    ['cocher', 'À cocher ce mois', function(){ return aCocherCard(t); }],
-    ['vers', 'Épargne du mois', versementsCard]
+    ['cocher', 'À cocher ce mois', function(){ return aCocherCard(t); }]
   ]);
 }
 function pageBudget(){
@@ -2598,9 +2627,7 @@ function pageBudget(){
   var t = totals();
   return h + pageCartes('budget', [
     ['rev', 'Revenus', function(){ return plier('rev', revenusCard(), eur(t.revB)); }],
-    ['postes', 'Postes de dépenses', function(){ return plier('postes', postesCard(), eur(t.sortiesB)); }],
-    ['ep', 'Épargne', function(){ return plier('ep', placementsCard('epargne'), (function(){ var e = epTotals('epargne'); return e.hasTotal ? eur(e.total) : ''; })()); }],
-    ['inv', 'Investissements', function(){ return plier('inv', placementsCard('invest'), state.data.epargnes.some(function(e){ return catOf(e)==='invest'; }) ? eur(investSum()) : ''); }]
+    ['postes', 'Postes de dépenses', function(){ return plier('postes', postesCard(), eur(t.sortiesB)); }]
   ]);
 }
 /* Transforme une carte « <div class="card"><h3>titre</h3>contenu</div> » en carte repliable :
@@ -2938,6 +2965,109 @@ function chiffresCard(){
     h += '<p class="cm-line">Le jour où vous dépensez le plus : le <b>'+J[im]+'</b> ('+eur0(pj[im])+' ce mois-ci).</p>';
   }
   h += '</div>';
+  return h;
+}
+
+/* ================= PAGE ÉPARGNE ET INVESTISSEMENT ================= */
+function pageEpargne(){
+  var t = totals();
+  return pageCartes('epargne', [
+    ['resume', 'Résumé', epResumeCard],
+    ['ep', 'Épargne', function(){ return plier('ep', placementsCard('epargne'), (function(){ var e = epTotals('epargne'); return e.hasTotal ? eur(e.total) : ''; })()); }],
+    ['inv', 'Investissements', function(){ return plier('inv', placementsCard('invest'), state.data.epargnes.some(function(e){ return catOf(e)==='invest'; }) ? eur(investSum()) : ''); }],
+    ['vers', 'Épargne du mois', versementsCard],
+    ['guide-ep', 'Aide : bien choisir son épargne', guideEpargneCard],
+    ['guide-inv', 'Aide : bien choisir un investissement', guideInvestCard]
+  ]);
+}
+/* dépenses mensuelles de référence : le prévu du mois, sinon la moyenne des mois clôturés */
+function depensesMensuelles(){
+  var t = totals();
+  if(t.depB > 0) return {v: t.depB, src: 'vos dépenses prévues ce mois-ci (fixes + variables)'};
+  var H = (state.history||[]).filter(function(m){ return m.totals && +m.totals.depenses>0; }).slice(0, 6);
+  if(H.length) return {v: H.reduce(function(s,m){ return s + (+m.totals.depenses); },0)/H.length, src: 'la moyenne de vos '+H.length+' dernier'+(H.length>1?'s':'')+' mois clôturé'+(H.length>1?'s':'')};
+  return null;
+}
+function epResumeCard(){
+  var es = epTotals('epargne'), ei = epTotals('invest'), dm = depensesMensuelles();
+  var totEp = es.hasTotal ? es.total : 0, totInv = investSum();
+  var h = '<div class="card"><h3>Votre épargne</h3>';
+  h += '<div class="kpi-row"><div><span>Épargne</span><b>'+eur0(totEp)+'</b></div><div><span>Investi</span><b>'+eur0(totInv)+'</b></div><div><span>Mis de côté ce mois</span><b>'+eur0((es.versePlus||0)+(ei.versePlus||0))+'</b></div></div>';
+  if(dm && dm.v>0){
+    var mois = totEp / dm.v;
+    h += '<p class="cm-line">Votre épargne couvre environ <b>'+(Math.round(mois*10)/10).toString().replace('.',',')+' mois</b> de dépenses (d\'après '+dm.src+' : '+eur0(dm.v)+' par mois).</p>';
+  }
+  var O = state.data.epargnes.filter(function(e){ return (+e.objectif||0)>0; });
+  if(O.length){
+    h += '<div class="sub-t">Objectifs</div><div class="cm-bars">'+O.map(function(e){
+      var v = (catOf(e)==='invest' ? investTotal(e) : epFin(e)) || 0, pc = Math.max(0, Math.min(1, v/(+e.objectif)));
+      return '<div><span>'+escHtml(e.label||'(sans nom)')+'</span><i><u style="width:'+Math.max(3, Math.round(pc*100))+'%;"></u></i><b>'+Math.round(pc*100)+' %<em>/ '+eur0(+e.objectif)+'</em></b></div>';
+    }).join('')+'</div>';
+  }
+  h += '</div>';
+  return h;
+}
+/* ---------- aide : informations générales (pas un conseil personnalisé) ---------- */
+var AVERT = '<p class="guide-avert">Informations générales pour vous orienter, <b>pas un conseil personnalisé</b> : seul un conseiller agréé (conseiller en investissements financiers inscrit à l\'ORIAS, ou votre banque) peut vous conseiller selon votre situation. Les taux, plafonds et règles fiscales changent : vérifiez-les sur <b>service-public.fr</b> ou auprès de votre banque avant de décider.</p>';
+var FICHES = {
+  livretA: {t:'Livret A', ic:'🏦', txt:'Argent disponible à tout moment, capital garanti, intérêts sans impôt. Taux fixé par l\'État (révisé en général 2 fois par an). Plafond de versements : 22 950 €. Un seul par personne.', pour:'L\'épargne de précaution et les projets proches.'},
+  ldds: {t:'LDDS', ic:'🏦', txt:'Comme le Livret A (disponible, garanti, sans impôt, même taux), avec un plafond de 12 000 €. Un seul par personne.', pour:'Compléter le Livret A une fois plein.'},
+  lep: {t:'LEP (Livret d\'épargne populaire)', ic:'🏦', txt:'Disponible, garanti, sans impôt, et un taux en général plus élevé que le Livret A. Réservé aux personnes dont les revenus sont sous un plafond (vérifiez sur service-public.fr avec votre avis d\'impôt). Plafond de versements : 10 000 €.', pour:'À ouvrir en premier si vous y avez droit.'},
+  pel: {t:'PEL', ic:'🏠', txt:'Épargne bloquée pour un projet immobilier, taux fixé à l\'ouverture. Versements réguliers obligatoires. Les intérêts sont imposés.', pour:'Un achat immobilier dans quelques années.'},
+  av: {t:'Assurance-vie', ic:'📘', txt:'Une enveloppe très souple : un « fonds euros » (capital garanti par l\'assureur, rendement modéré) et/ou des « unités de compte » (fonds, ETF : peuvent monter ou baisser). Argent récupérable, fiscalité plus douce après 8 ans. Attention aux frais : comparez-les.', pour:'Épargner sur plusieurs années, préparer la transmission.'},
+  pea: {t:'PEA (Plan d\'épargne en actions)', ic:'📈', txt:'Pour investir en actions européennes ou en fonds/ETF éligibles (dont des ETF « monde »). Après 5 ans, les gains ne paient plus d\'impôt sur le revenu (les prélèvements sociaux restent dus). Un retrait avant 5 ans ferme en général le plan. Plafond de versements : 150 000 €. La valeur peut baisser.', pour:'Un horizon long (8 ans et plus) en acceptant les variations.'},
+  cto: {t:'Compte-titres (CTO)', ic:'📊', txt:'Aucune limite ni contrainte, accès à toutes les bourses. Les gains sont imposés chaque année où vous vendez. Plus simple à ouvrir, moins avantageux fiscalement que le PEA.', pour:'Ce qui ne rentre pas dans un PEA.'},
+  per: {t:'PER (Plan d\'épargne retraite)', ic:'🧓', txt:'Argent bloqué jusqu\'à la retraite (sauf cas prévus : achat de la résidence principale, accidents de la vie). Les versements peuvent réduire votre impôt sur le revenu aujourd\'hui ; ils sont imposés à la sortie. Surtout intéressant si vous payez beaucoup d\'impôt.', pour:'Préparer la retraite.'},
+  etf: {t:'ETF (fonds indiciels)', ic:'🌍', txt:'Un seul produit qui contient des centaines d\'entreprises (par exemple un ETF « monde »). Frais en général bas, très diversifié. Se loge dans un PEA, une assurance-vie ou un CTO. La valeur suit les marchés : elle peut baisser de 30 % ou plus certaines années.', pour:'Investir sur le long terme sans choisir les entreprises une par une.'},
+  crypto: {t:'Cryptomonnaies', ic:'🪙', txt:'Très forte volatilité : la valeur peut être divisée par deux (ou plus) en peu de temps. Pas de garantie. N\'y mettez que l\'argent que vous accepteriez de perdre, et utilisez une plateforme enregistrée auprès de l\'AMF.', pour:'Une petite part, si vous acceptez un risque élevé.'}
+};
+function ficheHtml(k){ var f = FICHES[k]; return '<div class="fiche"><p>'+f.txt+'</p><p class="fiche-pour"><b>Pour :</b> '+f.pour+'</p></div>'; }
+function guideEpargneCard(){
+  var es = epTotals('epargne'), totEp = es.hasTotal ? es.total : 0, dm = depensesMensuelles();
+  var h = '<div class="card guide"><h3>Aide : bien choisir son épargne</h3>';
+  h += '<div class="sub-t" style="margin-top:0;">1. D\'abord, une épargne de précaution</div>';
+  h += '<p class="cm-line" style="margin-top:0;">C\'est l\'argent pour les coups durs (panne, réparation, perte de revenus). Le repère souvent donné est de <b>3 à 6 mois de dépenses</b>, sur des livrets disponibles à tout moment.</p>';
+  if(dm && dm.v>0){
+    var bas = dm.v*3, haut = dm.v*6, ok = totEp >= bas;
+    h += '<div class="guide-calc'+(ok?' ok':'')+'"><div>Pour vous (d\'après '+dm.src+')</div><b>'+eur0(bas)+' à '+eur0(haut)+'</b><span>Vous avez '+eur0(totEp)+' en épargne : '+(totEp>=haut ? 'au-dessus du repère.' : (ok ? 'dans le repère.' : 'il manque '+eur0(bas-totEp)+' pour atteindre 3 mois.'))+'</span></div>';
+  } else h += '<p class="hint-line">Remplissez votre budget (onglet Budget) pour que l\'appli calcule ce repère avec vos chiffres.</p>';
+  h += '<div class="sub-t">2. L\'ordre habituel des livrets</div>';
+  h += '<p class="cm-line" style="margin-top:0;">Tous sont disponibles, garantis et sans impôt. On remplit en général d\'abord celui qui rapporte le plus, s\'il vous est accessible :</p>';
+  h += sec('g-lep', false, 'LEP', ficheHtml('lep'), 'sec guide-sec') + sec('g-la', false, 'Livret A', ficheHtml('livretA'), 'sec guide-sec') + sec('g-ldds', false, 'LDDS', ficheHtml('ldds'), 'sec guide-sec');
+  h += '<div class="sub-t">3. Pour un projet à quelques années</div>';
+  h += sec('g-pel', false, 'PEL (immobilier)', ficheHtml('pel'), 'sec guide-sec') + sec('g-av1', false, 'Assurance-vie (fonds euros)', ficheHtml('av'), 'sec guide-sec');
+  h += '<div class="guide-astuce">Astuce automatique : programmez un virement vers votre livret le jour où le salaire arrive (Réglages → Virements programmés). Épargner d\'abord, dépenser ensuite.</div>';
+  h += AVERT + '</div>';
+  return h;
+}
+var QUESTIONS_INV = [
+  {k:'precaution', q:'Avez-vous déjà une épargne de précaution (3 à 6 mois de dépenses) ?', o:[['oui','Oui'],['non','Non / pas encore']]},
+  {k:'horizon', q:'Dans combien de temps aurez-vous besoin de cet argent ?', o:[['court','Moins de 2 ans'],['moyen','2 à 8 ans'],['long','Plus de 8 ans'],['retraite','Pour la retraite']]},
+  {k:'risque', q:'Si votre placement perdait 20 % en un an, vous…', o:[['vendre','Vendriez tout, ça m\'empêcherait de dormir'],['attendre','Attendriez que ça remonte'],['acheter','En profiteriez pour en racheter']]}
+];
+function guideInvestCard(){
+  var R = state.guideInv || {};
+  var h = '<div class="card guide"><h3>Aide : bien choisir un investissement</h3>';
+  h += '<p class="cm-line" style="margin-top:0;">Trois questions pour savoir quels placements regarder. Vos réponses restent sur ce téléphone, rien n\'est envoyé.</p>';
+  QUESTIONS_INV.forEach(function(Q, i){
+    h += '<div class="gq"><div class="gq-q">'+(i+1)+'. '+Q.q+'</div><div class="gq-o">'+Q.o.map(function(o){
+      return '<button type="button" class="gq-b'+(R[Q.k]===o[0]?' on':'')+'" data-gq="'+Q.k+':'+o[0]+'">'+o[1]+'</button>';
+    }).join('')+'</div></div>';
+  });
+  var fini = QUESTIONS_INV.every(function(Q){ return R[Q.k]; });
+  if(fini){
+    var pistes = [], msg = '';
+    if(R.precaution==='non'){ msg = 'Avant d\'investir, la priorité habituelle est de constituer l\'épargne de précaution sur des livrets (voir l\'aide « bien choisir son épargne »). Investir sans réserve oblige parfois à vendre au mauvais moment.'; pistes = ['lep','livretA']; }
+    else if(R.horizon==='court'){ msg = 'Sur moins de 2 ans, les placements qui peuvent baisser sont en général déconseillés : vous n\'auriez pas le temps d\'attendre une remontée.'; pistes = ['livretA','ldds','av']; }
+    else if(R.risque==='vendre'){ msg = 'Vous préférez ne pas voir votre argent baisser : les supports garantis correspondent mieux, quitte à un rendement plus modeste.'; pistes = ['av','livretA','pel']; }
+    else if(R.horizon==='retraite'){ msg = 'Pour la retraite, les enveloppes de long terme sont souvent étudiées. Le PER bloque l\'argent mais peut réduire l\'impôt ; le PEA et l\'assurance-vie restent disponibles.'; pistes = ['per','pea','av','etf']; }
+    else if(R.horizon==='moyen'){ msg = 'Entre 2 et 8 ans, on mélange souvent une part garantie et une part plus dynamique, d\'autant plus dynamique que l\'échéance est loin.'; pistes = ['av','pea','etf']; }
+    else { msg = 'Sur plus de 8 ans, en acceptant les variations, les placements en actions diversifiés (par exemple un ETF « monde » dans un PEA) sont souvent étudiés : ils ont historiquement plus rapporté sur longue période, sans aucune garantie.'; pistes = ['pea','etf','av'].concat(R.risque==='acheter' ? ['cto','crypto'] : []); }
+    h += '<div class="guide-res"><div class="sub-t" style="margin-top:0;">Pistes à étudier</div><p>'+msg+'</p>'+pistes.map(function(k){ return sec('gi-'+k, false, FICHES[k].ic+' '+FICHES[k].t, ficheHtml(k), 'sec guide-sec'); }).join('')+
+      '<p class="hint-line">Principes généraux souvent rappelés : diversifier, investir régulièrement (même petit), regarder les frais, ne pas investir l\'argent dont on aura besoin bientôt.</p>'+
+      '<button type="button" class="link-btn" id="gqReset">Recommencer</button></div>';
+  }
+  h += AVERT + '</div>';
   return h;
 }
 
@@ -3560,8 +3690,8 @@ function placementsCard(cat){
   var E = state.data.epargnes.filter(function(e){ return catOf(e)===cat; }), et = epTotals(cat);
   var h = '<div class="card"><h3>'+(inv?'Investissements':'Épargne')+' <span class="count">('+E.length+')</span> '+aideBtn('pl-'+cat)+'</h3>';
   h += aideTxt('pl-'+cat, inv
-    ? 'Le montant = tout ce que vous y avez mis. Il augmente tout seul quand vous notez un versement (onglet Mois → « Épargne du mois »). Touchez › pour la plateforme et le type.'
-    : 'Le solde augmente tout seul quand vous notez un versement (onglet Mois → « Épargne du mois »). Si votre banque affiche un autre montant (intérêts…), corrigez-le ici. Touchez une ligne pour l\'endroit (banque, maison…), le type et un objectif à atteindre.');
+    ? 'Le montant = tout ce que vous y avez mis. Il augmente tout seul quand vous notez un versement (onglet Épargne → « Épargne du mois »). Touchez › pour la plateforme et le type.'
+    : 'Le solde augmente tout seul quand vous notez un versement (onglet Épargne → « Épargne du mois »). Si votre banque affiche un autre montant (intérêts…), corrigez-le ici. Touchez une ligne pour l\'endroit (banque, maison…), le type et un objectif à atteindre.');
   /* deux chiffres, pas plus */
   var total = inv ? investSum() : (et.hasTotal ? et.total : 0);
   h += '<div class="ep-stats">';
@@ -3626,8 +3756,8 @@ function placementsCard(cat){
     h += '<p class="hint-line" style="margin-top:6px;">Supprimer un type ne supprime aucun placement : ils passent sur le premier type de la liste.</p></div>';
   }
   h += '<p class="hint-line" style="display:none">'+(inv
-    ? 'Le montant = tout ce que vous y avez mis. Il augmente tout seul quand vous notez un versement (onglet Mois → « Épargne du mois »).'
-    : 'Le solde augmente tout seul quand vous notez un versement (onglet Mois → « Épargne du mois »). Si votre banque affiche un autre montant (intérêts…), corrigez-le ici.')+'</p>';
+    ? 'Le montant = tout ce que vous y avez mis. Il augmente tout seul quand vous notez un versement (onglet Épargne → « Épargne du mois »).'
+    : 'Le solde augmente tout seul quand vous notez un versement (onglet Épargne → « Épargne du mois »). Si votre banque affiche un autre montant (intérêts…), corrigez-le ici.')+'</p>';
   h += '</div>';
   return h;
 }
@@ -3705,7 +3835,7 @@ function versementsCard(){
   var E = state.data.epargnes, et = epTotals();
   var dv = state.draftVersement || (state.draftVersement = {date:todayISO(), montant:'', epId:(E[0]?E[0].id:''), source:'compte'});
   var titre = 'Épargne du mois <span class="sec-count">'+et.nbVersements+'</span><span class="sec-amt">'+eur(et.versePlus)+'</span>';
-  if(!E.length) return '<div class="card">'+sec('vers', false, titre, '<p class="hint-line">Ajoutez d\'abord un livret ou un placement dans l\'onglet Budget.</p>')+'</div>';
+  if(!E.length) return '<div class="card">'+sec('vers', false, titre, '<p class="hint-line">Ajoutez d\'abord un livret ou un placement plus haut dans cet onglet.</p>')+'</div>';
   var h = '';
   h += '<div class="quick-add qa-v">';
   h += '<input type="date" class="text-input qa-date" id="vDate" value="'+escapeAttr(dv.date)+'">';
@@ -4976,7 +5106,18 @@ function wireEvents(){
     };
   });
   var monthInput = document.getElementById('monthInput');
-  if(monthInput) monthInput.oninput = function(){ state.data.monthLabel = monthInput.value; persist(false, ['monthLabel']); };
+  if(monthInput){
+    monthInput.oninput = function(){ state.data.monthLabel = monthInput.value; persist(false, ['monthLabel']); };
+    monthInput.onblur = function(){ state.editMois = false; setTimeout(function(){ render(); }, 0); };
+    monthInput.onkeydown = function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); monthInput.blur(); } };
+  }
+  var monthPen = document.getElementById('monthPen');
+  if(monthPen) monthPen.onclick = function(){ state.editMois = true; render(); var el = document.getElementById('monthInput'); if(el){ el.focus(); try{ el.select(); }catch(e){} } };
+  /* aide investissement : réponses gardées sur ce téléphone */
+  Array.prototype.forEach.call(document.querySelectorAll('[data-gq]'), function(b){
+    b.onclick = function(){ var v = b.getAttribute('data-gq').split(':'); state.guideInv = state.guideInv || {}; state.guideInv[v[0]] = v[1]; try{ localStorage.setItem('bc_guide', JSON.stringify(state.guideInv)); }catch(e){} render(); };
+  });
+  var gqr = document.getElementById('gqReset'); if(gqr) gqr.onclick = function(){ state.guideInv = {}; try{ localStorage.removeItem('bc_guide'); }catch(e){} render(); };
 
   Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'), function(b){
     b.onclick = function(){
@@ -5777,8 +5918,9 @@ var resizeTimer=null;
 window.addEventListener('resize', function(){ if(!state.exists) return; clearTimeout(resizeTimer); resizeTimer=setTimeout(renderPareto, 200); });
 
 try{
-  var savedTab = localStorage.getItem('bc_tab'); if(savedTab==='saisie'||savedTab==='bilan'||savedTab==='budget'||savedTab==='comptes'||savedTab==='reglages') state.tab = savedTab;
+  var savedTab = localStorage.getItem('bc_tab'); if(savedTab==='saisie'||savedTab==='bilan'||savedTab==='budget'||savedTab==='comptes'||savedTab==='reglages'||savedTab==='epargne') state.tab = savedTab;
   try{ state.sec = JSON.parse(localStorage.getItem('bc_sec')||'{}') || {}; }catch(e){ state.sec = {}; }
+  try{ state.guideInv = JSON.parse(localStorage.getItem('bc_guide')||'{}') || {}; }catch(e){ state.guideInv = {}; }
   try{ state.repMode = localStorage.getItem('bc_repMode')==='reel' ? 'reel' : 'prevu'; state.paretoMode = localStorage.getItem('bc_paretoMode')==='reel' ? 'reel' : 'budget'; }catch(e){}
   var savedSort = localStorage.getItem('bc_sort'); if(savedSort) state.sortMode = savedSort;
   state.soldeDetOpen = localStorage.getItem('bc_det')==='1';
