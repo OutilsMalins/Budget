@@ -52,6 +52,7 @@ function verif(nom, a, b){ const bon = Math.abs(a - b) < 0.005; if(!bon) ok = fa
   await p.selectOption('[data-cdev="' + cid + '"]', 'CHF'); await p.waitForTimeout(400);
   await p.fill('[data-taux="CHF"]', '1,05'); await p.dispatchEvent('[data-taux="CHF"]', 'change'); await p.waitForTimeout(300);
   /* virement 210 € -> compte suisse : 200 CHF annoncés par la banque */
+await p.click('[data-tab="ajout"]'); await p.waitForTimeout(200); await p.click('[data-addmode="virement"]'); await p.waitForTimeout(300);
   await p.selectOption('#virDe', 'compte'); await p.waitForTimeout(150);
   await p.selectOption('#virVers', cid); await p.waitForTimeout(150);
   await p.fill('#virMontant', '210'); await p.waitForTimeout(150);
@@ -63,7 +64,7 @@ function verif(nom, a, b){ const bon = Math.abs(a - b) < 0.005; if(!bon) ok = fa
   await p.selectOption('#virVers', 'ep:e1'); await p.waitForTimeout(150);
   await p.fill('#virMontant', '50'); await p.click('#virOk'); await p.waitForTimeout(400);
   /* dépense de 30 CHF payée avec le compte suisse */
-  await p.click('[data-tab="saisie"]'); await p.waitForTimeout(300);
+  await p.click('[data-addmode="carte"]'); await p.waitForTimeout(300);
   await p.selectOption('#qaCompte', cid); await p.waitForTimeout(300);
   await p.fill('#qaLabel', 'Migros'); await p.fill('#qaMontant', '30');
   await p.selectOption('#qaPoste', 'l2'); await p.waitForTimeout(150);

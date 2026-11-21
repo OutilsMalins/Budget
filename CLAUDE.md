@@ -33,7 +33,7 @@ essai/index.html          version d'essai (…/Budget/essai/), gardée pour test
 apple-touch-icon.png      icône iPhone (180×180, € blanc sur bleu)
 firestore.rules           COPIE DE RÉFÉRENCE des règles Firestore (adresses factices : voir Déploiement)
 tests/stub-claude.js      fausse base de données pour tester la source dans un navigateur
-tests/smoke.js            test Playwright : 4 onglets, erreurs JS, boucle de rendu, captures
+tests/smoke.js            test Playwright : 7 onglets, erreurs JS, boucle de rendu, captures
 tests/auto.js             automatismes, virements programmés, suggestions, chèques
 tests/comptes.js          comptes multiples : anciennes données = mêmes soldes, CHF, virements, clôture
 tests/rules.test.js       règles Firestore dans l'émulateur (40 cas)
@@ -192,7 +192,13 @@ Chaque onglet est construit par `pageCartes(onglet, [[id, nom, fonction], …])`
 - **Aides** (`guideEpargneCard`, `guideInvestCard`) : informations générales + calculs sur les chiffres réels (épargne de précaution 3 à 6 mois de dépenses : `depensesMensuelles()`), 3 questions (précaution, horizon, réaction à une baisse de 20 %) → pistes à étudier avec fiches (`FICHES`). **Jamais un conseil personnalisé** (réservé aux conseillers agréés, ORIAS) : avertissement `AVERT` sur chaque aide ; **aucun taux chiffré** (ils changent) ; plafonds connus (Livret A 22 950 €, LDDS 12 000 €, LEP 10 000 €, PEA 150 000 €) à revérifier s'ils changent. Réponses gardées par téléphone (`bc_guide`).
 - **Titre du mois** : un vrai titre `<h1 id="monthTitle">` (le champ de saisie rendait le texte flou sur iPhone, d'après l'utilisateur) ; crayon ✎ pour le renommer. Marge sous la barre d'état (`env(safe-area-inset-top)`).
 
-### Les 6 onglets
+### Onglet Ajouter (21/11/2026) — « on ajoute tout au même endroit, les autres onglets servent à voir »
+
+- Onglet central **Ajouter** (bouton ＋ rond au milieu de la barre, `pageAjout`) : 6 carrés `MODES_AJOUT` (`state.addMode`, gardé dans `bc_addmode`) : 💳 Carte, 💵 Espèces, 🧾 Chèque (`renderAchatsCard('form')`, comptes filtrés par `comptesDuMode` : espèces → porte-monnaie, carte/chèque → comptes en banque), ⇄ Virement (`virementCard`), 💶 Revenu (`revenuAjoutCard`), 🐷 Épargne (`epargneAjoutCard`, mêmes identifiants que l'ancien formulaire de versement). En dessous : dépenses saisies (`renderAchatsCard('liste')`), À cocher, virements du mois.
+- **Revenu** : un revenu prévu arrivé (« Reçu », `r.recuLe`) ou un **revenu ponctuel** (vente, prime…) = une ligne de `revenus` avec `ponctuel:true, budget:0, recu:true, date`. À la clôture, les ponctuels sont retirés de la liste (ils restent dans l'archive du mois) ; ils sont ignorés par le prévisionnel.
+- Onglet **Mois** = pour voir : carte des comptes, suggestions, « Mes postes ce mois » (barres), « Dernières dépenses ». Onglet **Comptes** = liste, virements du mois, taux (le formulaire de virement est dans Ajouter). « Virement », « Puiser », les suggestions « Renflouer / Verser / Voir / Noter » mènent à Ajouter.
+
+### Les 7 onglets
 
 - **Mois (`pageSaisie`)**, quatre cartes :
   - **`compteCard`** : total disponible sur tous les comptes + un bouton par compte, bouton « Virement », deux fins de mois estimées (« si plus aucune dépense » et « en dépensant tout le prévu », tous comptes), « cette semaine », les retards, « Puiser dans l'épargne » (prépare un virement). Le retrait/dépôt d'espèces et le détail du calcul sont passés dans l'onglet Comptes (virement, et détail par compte).
