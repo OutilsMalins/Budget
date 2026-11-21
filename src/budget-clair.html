@@ -851,6 +851,21 @@
   .guide-res p{margin:0 0 8px;}
   .tab-btn{font-size:10px; padding-left:1px; padding-right:1px;}
   .tab-btn .i{width:22px; height:22px;}
+
+  /* page Ajouter */
+  .add-modes{padding:12px !important;}
+  .add-grid{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px;}
+  .add-mode{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; aspect-ratio:1.35; border:1.5px solid var(--line); background:var(--surface); border-radius:14px; cursor:pointer; font-family:inherit; color:var(--ink-2); padding:6px;}
+  .add-mode .am-ic{font-size:24px; line-height:1;}
+  .add-mode .am-l{font-size:13px; font-weight:650;}
+  .add-mode.on{border-color:var(--accent); background:var(--accent-bg); color:var(--accent);}
+  .tab-add .add-fab{display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; margin-top:-16px; border-radius:50%; background:var(--accent); color:var(--accent-ink, #fff); box-shadow:0 6px 16px rgba(0,0,0,.22); font-style:normal;}
+  .tab-add .add-fab .i{width:24px; height:24px; stroke-width:2.4;}
+  .tab-add.active{background:transparent !important;}
+  [data-theme] .tab-add.active{background:transparent;}
+  .dl-ic{font-style:normal; margin-right:2px;}
+  .qa-chq{display:flex; align-items:center; gap:8px;}
+  .qa-chq span{font-size:12px; font-weight:600; color:var(--ink-muted); white-space:nowrap;}
   /* =================== Styles au choix (Réglages → Apparence), sur <html data-theme="a…e"> ===================
      Chaque style redéfinit TOUTES les couleurs (variables) : fond, cartes, textes, lignes, accent.
      Les règles « [data-theme] … » remplacent les couleurs écrites en dur plus haut. */
@@ -1793,18 +1808,19 @@ function render(){
   var html = '';
 
   /* en-tête commun aux deux pages */
-  html += '<div class="hero"><div>'+(state.editMois ? '<input class="month-edit" id="monthInput" value="'+escapeAttr(d.monthLabel)+'">' : '<h1 class="month-title" id="monthTitle">'+escHtml(d.monthLabel)+'</h1><button type="button" class="month-pen" id="monthPen" aria-label="Renommer le mois" title="Renommer le mois">✎</button>')+'<div class="sub">'+({saisie:'Vos dépenses et ce qu\'il reste à cocher.', comptes:'Vos comptes, vos virements.', reglages:'Automatismes, apparence et compte.', epargne:'Vos livrets, vos placements, et de l\'aide pour choisir.', budget:'Votre budget prévu : revenus, postes et placements.', bilan:'Le point sur le mois et l\'historique.'}[state.tab]||'')+'</div></div>'+
+  html += '<div class="hero"><div>'+(state.editMois ? '<input class="month-edit" id="monthInput" value="'+escapeAttr(d.monthLabel)+'">' : '<h1 class="month-title" id="monthTitle">'+escHtml(d.monthLabel)+'</h1><button type="button" class="month-pen" id="monthPen" aria-label="Renommer le mois" title="Renommer le mois">✎</button>')+'<div class="sub">'+({saisie:'Où vous en êtes ce mois-ci.', comptes:'Vos comptes, vos virements.', reglages:'Automatismes, apparence et compte.', ajout:'Notez ici tout ce qui se passe sur vos comptes.', epargne:'Vos livrets, vos placements, et de l\'aide pour choisir.', budget:'Votre budget prévu : revenus, postes et placements.', bilan:'Le point sur le mois et l\'historique.'}[state.tab]||'')+'</div></div>'+
     (state.tab==='bilan' ? '<div class="hero-actions"><button class="btn btn-ghost" id="closeMonthBtn">Clôturer '+escapeAttr(d.monthLabel)+'</button></div>' : '')+
     (window.BC_HOOKS && BC_HOOKS.heroBtn ? BC_HOOKS.heroBtn() : '')+'</div>';
   if(state.confirmClose && state.tab==='bilan') html += closePanel();
 
   /* version page web : une page « Réglages » (compte, foyer, sauvegarde) fournie par BC_HOOKS */
-  html += ({saisie:pageSaisie, comptes:pageComptes, epargne:pageEpargne, budget:pageBudget, bilan:pageBilan, reglages:pageReglagesBase}[state.tab] || pageSaisie)();
+  html += ({saisie:pageSaisie, comptes:pageComptes, epargne:pageEpargne, ajout:pageAjout, budget:pageBudget, bilan:pageBilan, reglages:pageReglagesBase}[state.tab] || pageSaisie)();
 
   html += '<nav class="tabbar">'+
     tabBtn('saisie', ICON.home, 'Mois')+
     tabBtn('comptes', ICON.bank, 'Comptes')+
     tabBtn('epargne', ICON.grow, 'Épargne')+
+    '<button class="tab-btn tab-add'+(state.tab==='ajout'?' active':'')+'" data-tab="ajout" aria-label="Ajouter"><span class="ic"><i class="add-fab">'+ICON.plus+'</i></span>Ajouter</button>'+
     tabBtn('budget', ICON.list, 'Budget')+
     tabBtn('bilan', ICON.chart, 'Bilan')+
     tabBtn('reglages', ICON.gear, 'Réglages')+
@@ -1968,8 +1984,8 @@ function pageSaisie(){
   return pageCartes('saisie', [
     ['solde', 'Comptes et reste à dépenser', function(){ return compteCard(t); }],
     ['sugg', 'Suggestions', function(){ return suggestionsCard(t); }],
-    ['dep', 'Dépenses du mois', renderAchatsCard],
-    ['cocher', 'À cocher ce mois', function(){ return aCocherCard(t); }]
+    ['postes', 'Mes postes ce mois', postesMoisCard],
+    ['dernieres', 'Dernières dépenses', dernieresCard]
   ]);
 }
 function pageBudget(){
@@ -2032,7 +2048,7 @@ function prochainCard(){
     {t:'🐷 Épargne et investissement', f:function(l){ return l.type==='epargne' || l.type==='invest'; }}
   ];
   /* totaux et règle 50/30/20 */
-  var rev = d.revenus.reduce(function(s,r){ return s+planVal('revenus', r); },0);
+  var rev = d.revenus.filter(function(r){ return !r.ponctuel; }).reduce(function(s,r){ return s+planVal('revenus', r); },0);
   var bes = 0, env = 0, epa = 0;
   L.forEach(function(l){ var v = planVal('lignes', l); if(l.type==='epargne' || l.type==='invest') epa += v; else if(l.dispensable) env += v; else bes += v; });
   var sorties = bes+env+epa, reste = rev - sorties;
@@ -2042,7 +2058,7 @@ function prochainCard(){
   h += '<div class="pn-sum"><div><span>Revenus prévus</span><b>'+eur(rev)+'</b></div><div><span>Sorties prévues</span><b>'+eur(sorties)+'</b></div>'+
        '<div><span>'+(reste>=0?'Il reste':'Il manque')+'</span><b style="color:'+(reste>=0?'var(--good)':'var(--critical)')+';">'+eur(Math.abs(reste))+'</b></div></div>';
   h += '<div class="pn-regle"><span>🏠 Besoins <b style="color:'+(rev>0&&bes/rev<=0.5?'var(--good)':'var(--critical)')+';">'+pc(bes)+'</b> <i>/ 50 %</i></span><span>🎉 Envies <b style="color:'+(rev>0&&env/rev<=0.3?'var(--good)':'var(--critical)')+';">'+pc(env)+'</b> <i>/ 30 %</i></span><span>🐷 Épargne <b style="color:'+(rev>0&&epa/rev>=0.2?'var(--good)':'var(--warning)')+';">'+pc(epa)+'</b> <i>/ 20 %</i></span></div>';
-  h += '<div class="pn-grp"><div class="pn-t">💶 Revenus</div>'+d.revenus.map(function(r){ return row('revenus', r); }).join('')+'</div>';
+  h += '<div class="pn-grp"><div class="pn-t">💶 Revenus</div>'+d.revenus.filter(function(r){ return !r.ponctuel; }).map(function(r){ return row('revenus', r); }).join('')+'</div>';
   groupes.forEach(function(g){
     var items = L.filter(g.f); if(!items.length) return;
     h += '<div class="pn-grp"><div class="pn-t">'+g.t+'</div>'+items.map(function(l){ return row('lignes', l); }).join('')+'</div>';
@@ -2424,11 +2440,92 @@ function guideInvestCard(){
   return h;
 }
 
+/* ================= PAGE AJOUTER : le seul endroit où l'on note ce qui se passe sur les comptes ================= */
+var MODES_AJOUT = [
+  ['carte', '💳', 'Carte'], ['especes', '💵', 'Espèces'], ['cheque', '🧾', 'Chèque'],
+  ['virement', '⇄', 'Virement'], ['revenu', '💶', 'Revenu'], ['epargne', '🐷', 'Épargne']
+];
+function modeAjout(){ return MODES_AJOUT.some(function(m){ return m[0]===state.addMode; }) ? state.addMode : 'carte'; }
+function pageAjout(){
+  var t = totals(), mode = modeAjout();
+  var h = '<div class="card add-modes"><div class="add-grid">'+MODES_AJOUT.map(function(m){
+    return '<button type="button" class="add-mode'+(m[0]===mode?' on':'')+'" data-addmode="'+m[0]+'"><span class="am-ic">'+m[1]+'</span><span class="am-l">'+m[2]+'</span></button>';
+  }).join('')+'</div></div>';
+  if(mode==='virement') h += virementCard(t);
+  else if(mode==='revenu') h += revenuAjoutCard();
+  else if(mode==='epargne') h += epargneAjoutCard();
+  else h += renderAchatsCard('form');
+  return h + pageCartes('ajout', [
+    ['liste', 'Dépenses saisies', function(){ return renderAchatsCard('liste'); }],
+    ['cocher', 'À cocher ce mois', function(){ return aCocherCard(t); }],
+    ['mvts', 'Virements et épargne du mois', mouvementsCard]
+  ]);
+}
+/* ---------- revenu : un revenu prévu qui arrive, ou un nouveau revenu ponctuel ---------- */
+function revenuAjoutCard(){
+  var d = state.data, rv = state.draftRev || (state.draftRev = {label:'', montant:'', compte:'compte', date:todayISO()});
+  if(!compteById(rv.compte)) rv.compte = 'compte';
+  var dv = devDe(rv.compte), attendus = d.revenus.filter(function(r){ return !r.recu && !r.ponctuel; });
+  var h = '<div class="card"><h3>Revenu reçu '+aideBtn('revajout')+'</h3>';
+  h += aideTxt('revajout', 'Un revenu <b>prévu</b> (salaire, allocations…) se prépare dans l\'onglet Budget : ici, vous le marquez comme reçu. Un <b>autre revenu</b> (vente, prime, cadeau, remboursement d\'un ami…) ne compte que pour ce mois-ci.');
+  if(attendus.length){
+    h += '<div class="sub-t" style="margin-top:0;">Un revenu prévu est arrivé</div><div class="cm-list">'+attendus.map(function(r){
+      var dvr = estDevise(r) ? r.devise : 'EUR';
+      return '<div><span style="display:block;"><b style="color:var(--ink);">'+escHtml(r.label||'(sans nom)')+'</b><em style="margin:0;display:block;">'+escHtml(cptLabel(cptRev(r)))+(isSet(r.jour)?' · le '+(+r.jour):'')+'</em></span><span style="flex:0 0 auto;"><b>'+money(valDev(r,'budget'), dvr)+'</b> <button class="btn-mini btn-ok" data-revrecu="'+escapeAttr(r.id)+'">Reçu</button></span></div>';
+    }).join('')+'</div>';
+    h += '<div class="sub-t">Ou un autre revenu</div>';
+  }
+  h += '<div class="vir-grid">';
+  h += '<label class="f f-full"><span>Nom</span><input class="text-input" id="raLabel" value="'+escapeAttr(rv.label)+'" placeholder="ex. Vente Vinted, prime, cadeau"></label>';
+  h += '<label class="f"><span>Montant'+(dv!=='EUR'?' ('+dv+')':'')+'</span><input type="text" inputmode="decimal" autocomplete="off" class="num-input" id="raMontant" value="'+escapeAttr(rv.montant)+'" placeholder="0,00"></label>';
+  h += '<label class="f"><span>Date</span><input type="date" class="text-input" id="raDate" value="'+escapeAttr(rv.date||todayISO())+'"></label>';
+  h += '<label class="f f-full"><span>Arrive sur</span><select class="chip-select" id="raCompte">'+compteOptions(rv.compte)+'</select></label>';
+  h += '</div><div class="tf-row" style="margin-top:12px;"><button class="btn btn-primary" id="raOk">Ajouter le revenu</button></div>';
+  h += '<p class="hint-line">Un revenu qui revient chaque mois ? Ajoutez-le plutôt dans l\'onglet Budget (« Revenus ») : il sera prévu tous les mois et pourra se cocher tout seul.</p>';
+  h += '</div>';
+  return h;
+}
+/* ---------- épargne : un versement sur un livret ou un placement ---------- */
+function epargneAjoutCard(){
+  var E = state.data.epargnes;
+  if(!E.length) return '<div class="card"><h3>Épargne</h3><p class="hint-line" style="margin-top:0;">Ajoutez d\'abord un livret ou un placement dans l\'onglet Épargne.</p></div>';
+  var dv = state.draftVersement || (state.draftVersement = {date:todayISO(), montant:'', epId:E[0].id, source:'compte'});
+  var h = '<div class="card"><h3>Versement d\'épargne '+aideBtn('epajout')+'</h3>';
+  h += aideTxt('epajout', 'L\'argent passe d\'un compte vers un livret ou un placement. Pour reprendre de l\'argent de l\'épargne vers un compte, utilisez « Virement ».');
+  h += '<div class="quick-add qa-v">';
+  h += '<input type="date" class="text-input qa-date" id="vDate" value="'+escapeAttr(dv.date)+'">';
+  h += '<input type="text" inputmode="decimal" autocomplete="off" class="num-input qa-amount" id="vMontant" value="'+escapeAttr(dv.montant)+'" placeholder="Montant">';
+  h += '<select class="chip-select" id="vPlacement">'+placementOptions(dv.epId)+'</select>';
+  h += '<label class="qa-cpt"><span>Depuis</span><select class="chip-select" id="vSource">'+compteOptions(cptOk(dv.source))+'</select></label>';
+  h += '<button class="btn btn-primary" id="vAdd">Ajouter</button>';
+  h += '</div></div>';
+  return h;
+}
+/* ---------- onglet Mois : pour voir où on en est ---------- */
+function postesMoisCard(){
+  var P = etatPostesVariables();
+  if(!P.length) return '';
+  var h = '<div class="card"><h3>Mes postes ce mois</h3><div class="cm-bars pm-bars">'+P.sort(function(a,b){ return b.ratio-a.ratio; }).map(function(x){
+    var col = x.ratio>1 ? 'var(--critical)' : (x.ratio>=0.8 ? 'var(--warning)' : 'var(--accent)');
+    return '<div><span>'+escHtml(x.l.label)+'</span><i><u style="width:'+Math.max(3, Math.min(100, Math.round(x.ratio*100)))+'%;background:'+col+';"></u></i><b>'+eur0(x.reel)+'<em>/ '+eur0(x.budget)+'</em></b></div>';
+  }).join('')+'</div></div>';
+  return h;
+}
+function dernieresCard(){
+  var A = (state.data.achats||[]).slice().sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); }).slice(0,5);
+  var h = '<div class="card"><h3>Dernières dépenses</h3>';
+  if(!A.length) h += '<p class="hint-line" style="margin-top:0;">Aucune dépense ce mois-ci. Touchez ＋ en bas pour en ajouter une.</p>';
+  else h += '<div class="cm-list">'+A.map(function(a){
+    var ic = a.cheque ? '🧾' : (cptDep(a)==='especes' || (compteById(cptDep(a))||{}).kind==='especes' ? '💵' : '💳');
+    return '<div><span><i class="dl-ic">'+ic+'</i>'+escHtml(a.label||'(sans libellé)')+'<em>'+frDate(a.date)+'</em></span><b'+((+a.montant||0)<0?' style="color:var(--good);"':'')+'>'+((+a.montant||0)<0 ? '+'+eur(-a.montant) : eur(+a.montant||0))+'</b></div>';
+  }).join('')+'</div><button type="button" class="link-btn" data-goajout="liste" style="margin-top:8px;">Toutes les dépenses</button>';
+  return h + '</div>';
+}
+
 /* ================= PAGE COMPTES ================= */
 function pageComptes(){
   var t = totals();
   return pageCartes('comptes', [
-    ['vir', 'Faire un virement', function(){ return virementCard(t); }],
     ['liste', 'Mes comptes', function(){ return comptesListeCard(t); }],
     ['mvts', 'Virements du mois', mouvementsCard],
     ['taux', 'Taux de change', tauxCard]
@@ -2769,7 +2866,7 @@ function paretoCard(){
 function revenusCard(){
   var d = state.data, t = totals();
   var html = '<div class="card"><h3>Revenus <span class="count">('+d.revenus.length+')</span> '+aideBtn('revenus')+'</h3>';
-  html += aideTxt('revenus', 'Ce que vous prévoyez de recevoir chaque mois. Vous les cochez à leur arrivée dans l\'onglet Mois. Touchez › pour la provenance, le compte ou les espèces, et le montant reçu.');
+  html += aideTxt('revenus', 'Ce que vous prévoyez de recevoir chaque mois. Ici, vous les prévoyez ; dans l\'onglet Ajouter (＋), vous les marquez comme reçus. Touchez › pour la provenance, le compte ou les espèces, et le montant reçu.');
   if(d.revenus.length) html += '<div class="ilist">';
   d.revenus.forEach(function(r){
     var key = 'r:'+r.id;
@@ -2896,10 +2993,17 @@ function posteOptions(selected, placeholder){
   return h;
 }
 
-function renderAchatsCard(){
-  var d = state.data;
+/* comptes proposés selon le mode : espèces → porte-monnaie ; carte et chèque → comptes en banque */
+function comptesDuMode(mode){
+  var A = comptesActifs().filter(function(c){ return mode==='especes' ? c.kind==='especes' : c.kind!=='especes'; });
+  return A.length ? A : comptesActifs();
+}
+function renderAchatsCard(partie){
+  var d = state.data, mode = ['carte','especes','cheque'].indexOf(state.addMode)>-1 ? state.addMode : 'carte';
   var dr = state.draft || (state.draft = {date:todayISO(), label:'', montant:'', posteId:defaultPosteId(), compte:dernierCompte(), sens:'dep', nature:''});
-  if(!dr.compte || !compteById(dr.compte)) dr.compte = dernierCompte();
+  var okCpt = comptesDuMode(mode);
+  if(!dr.compte || !okCpt.some(function(c){ return c.id===dr.compte; })) dr.compte = (okCpt.find(function(c){ return c.id===dernierCompte(); }) || okCpt[0] || {id:'compte'}).id;
+  dr.cheque = mode==='cheque';
   var devQa = devDe(dr.compte);
   var remb = dr.sens==='remb';
   var natQa = dr.nature || natureDuPoste(dr.posteId);
@@ -2911,7 +3015,8 @@ function renderAchatsCard(){
   /* total par compte (en euros), pour le filtre */
   var parCpt = {}; d.achats.forEach(function(a){ var c = cptDep(a); parCpt[c] = (parCpt[c]||0) + (+a.montant||0); });
 
-  var h = '<div class="card"><h3>Dépenses du mois <span class="count">('+d.achats.length+')</span> '+aideBtn('depenses')+'</h3>';
+  var titreMode = {carte:'Dépense par carte', especes:'Dépense en espèces', cheque:'Dépense par chèque'}[mode];
+  var h = '<div class="card"><h3>'+titreMode+' '+aideBtn('depenses')+'</h3>';
   h += aideTxt('depenses', 'Courses, essence, sorties… chaque dépense se déduit de son poste. Quand vous tapez le nom (ex. « Leclerc »), l\'appli choisit le poste d\'après vos dépenses passées : vous pouvez toujours le changer. Touchez une dépense de la liste pour la modifier, la séparer ou la supprimer. « ☆ Favori » garde une dépense fréquente pour la retrouver en un toucher.<br><button type="button" class="link-btn" data-gotopostes>Renommer ou ajouter un poste</button>');
 
   /* favoris : un toucher pré-remplit la saisie */
@@ -2938,16 +3043,17 @@ function renderAchatsCard(){
   h += '<input type="text" inputmode="decimal" autocomplete="off" class="num-input qa-amount" id="qaMontant" value="'+escapeAttr(dr.montant)+'" placeholder="'+(remb?'Remboursé':'Montant')+(devQa!=='EUR'?' ('+devQa+')':'')+'">';
   h += '<select class="chip-select qa-poste" id="qaPoste">'+posteOptions(dr.posteId)+'</select>';
   if(!remb) h += '<button type="button" class="nat-btn '+(natQa==='envie'?'nat-env':'nat-bes')+'" id="qaNature" title="Toucher pour changer">'+(natQa==='envie'?'🎉 Envie':'🏠 Besoin')+'</button>';
-  h += '<label class="qa-cpt"><span>'+(remb?'Revient sur':'Payé avec')+'</span><select class="chip-select" id="qaCompte">'+compteOptions(dr.compte)+'</select></label>';
-  h += '<label class="qa-chq"><input type="checkbox" class="chk" id="qaCheque"'+(dr.cheque?' checked':'')+'><span>'+(remb?'Reçu par chèque':'Par chèque')+'</span>'+
-       (dr.cheque ? '<input type="text" inputmode="numeric" autocomplete="off" class="text-input" id="qaChqNum" value="'+escapeAttr(dr.chqNum||'')+'" placeholder="N° (facultatif)">' : '')+'</label>';
+  h += '<label class="qa-cpt"><span>'+(remb?'Revient sur':(mode==='especes'?'Porte-monnaie':(mode==='cheque'?'Chèque du compte':'Carte du compte')))+'</span><select class="chip-select" id="qaCompte">'+
+       okCpt.map(function(c){ return '<option value="'+escapeAttr(c.id)+'" '+(c.id===dr.compte?'selected':'')+'>'+escHtml(c.label||'(sans nom)')+((c.devise||'EUR')!=='EUR'?' ('+c.devise+')':'')+'</option>'; }).join('')+'</select></label>';
+  if(mode==='cheque') h += '<label class="qa-chq"><span>'+(remb?'Chèque reçu n°':'Chèque n°')+'</span><input type="text" inputmode="numeric" autocomplete="off" class="text-input" id="qaChqNum" value="'+escapeAttr(dr.chqNum||'')+'" placeholder="facultatif"></label>';
   h += '<div class="qa-actions"><button class="btn btn-primary" id="qaAdd">'+(remb?'Ajouter le remboursement':'Ajouter')+'</button><button class="btn btn-ghost" id="qaFav" title="Enregistrer comme favori">☆ Favori</button></div>';
   h += '</div>';
   if(remb) h += '<p class="hint-line">Choisissez le poste de la dépense remboursée (Santé pour la Sécu ou la mutuelle, Loisirs si un ami vous rembourse un resto…). Le remboursement se déduit de ce poste et l\'argent revient sur le compte choisi.</p>';
   if(devQa!=='EUR') h += '<p class="hint-line">Montant en '+devQa+', converti en euros pour le budget'+(tauxManquant(devQa)?' (<b style="color:var(--warning);">taux inconnu</b> : indiquez-le dans Comptes)':' (1 '+devQa+' = '+numStr4(tauxDe(devQa))+' €)')+'.</p>';
 
   /* la liste des dépenses saisies : repliée par défaut, la saisie reste toujours visible */
-  var hListe = h; h = '';
+  var hListe = h + '</div>'; h = '';
+  if(partie==='form') return hListe;
   /* recherche */
   var q = normLib(state.depQ||'');
   h += '<div class="dep-search"><input class="text-input" id="depQ" type="search" autocomplete="off" value="'+escapeAttr(state.depQ||'')+'" placeholder="Rechercher une dépense (ex. Amazon)"></div>';
@@ -3017,9 +3123,7 @@ function renderAchatsCard(){
     h += '</div>';
   }
   var totMois = d.achats.reduce(function(s2,a){ return s2+(+a.montant||0); },0);
-  h = hListe + '<div class="dep-fold">'+sec('deplist', !!(state.depQ), 'Dépenses saisies <span class="sec-count">'+d.achats.length+'</span><span class="sec-amt">'+eur(totMois)+'</span>', h)+'</div>';
-  h += '</div>';
-  return h;
+  return '<div class="card">'+sec('deplist', !!(state.depQ), 'Dépenses saisies <span class="sec-count">'+d.achats.length+'</span><span class="sec-amt">'+eur(totMois)+'</span>', h)+'</div>';
 }
 /* dernier compte utilisé pour une dépense (mémorisé sur ce téléphone) */
 function dernierCompte(){
@@ -4177,7 +4281,8 @@ function doCloseMonth(){
     d.chequesReport = (d.chequesReport||[]).filter(function(c){ return !c.encaisse; }).concat(
       deps.docs.filter(chequeEnAttente).map(function(a){ var c = {id:a.id, mois:a.mois, label:a.label||'', num:a.cheque.num||'', date:a.date, montant:+a.montant||0, compte:cptDep(a), encaisse:false};
         if(estDevise(a)){ c.devise = a.devise; c.montantDevise = +a.montantDevise||0; } return c; }));
-    d.revenus.forEach(function(r){ r.reel = 0; r.recu = false; if(estDevise(r)) r.reelDevise = 0; });
+    d.revenus = d.revenus.filter(function(r){ return !r.ponctuel; });   /* les revenus ponctuels restent dans l'archive du mois */
+    d.revenus.forEach(function(r){ r.reel = 0; r.recu = false; r.recuLe = null; if(estDevise(r)) r.reelDevise = 0; });
     d.lignes.forEach(function(l){ l.reel = 0; if(l.type==='fixe') l.paye = false; if(estDevise(l)) l.reelDevise = 0; });
     var moisClos = d.moisCle;
     d.epargnes.forEach(function(e){
@@ -4701,6 +4806,45 @@ function wireEvents(){
     b.onclick = function(){ var id = b.getAttribute('data-themepick'); try{ localStorage.setItem('bc_theme', id); }catch(e){} appliquerTheme(id); render(); };
   });
 
+  function allerVirement(){ state.tab = 'ajout'; state.addMode = 'virement'; try{ localStorage.setItem('bc_tab', 'ajout'); localStorage.setItem('bc_addmode', 'virement'); }catch(e){} render(); window.scrollTo(0,0); }
+  /* ---------- page Ajouter ---------- */
+  Array.prototype.forEach.call(document.querySelectorAll('[data-addmode]'), function(b){
+    b.onclick = function(){ state.addMode = b.getAttribute('data-addmode'); try{ localStorage.setItem('bc_addmode', state.addMode); }catch(e){} render(); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-goajout]'), function(b){
+    b.onclick = function(){ state.tab = 'ajout'; try{ localStorage.setItem('bc_tab', 'ajout'); }catch(e){} state.sec = state.sec || {}; state.sec.deplist = true; render(); var el = document.querySelector('[data-sec="deplist"]'); if(el) el.scrollIntoView({block:'start'}); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-revrecu]'), function(b){
+    b.onclick = function(){
+      var r = findItem('revenus', b.getAttribute('data-revrecu')); if(!r) return;
+      r.recu = true; cocherMontant(r, true); r.autoCoche = false; r.recuLe = todayISO();
+      if(isSet(r.jour)) r.autoMois = state.data.moisCle;
+      persist(true, ['revenus']); render();
+      toast(escHtml(r.label||'Revenu')+' reçu : '+money(valDev(r,'reel'), estDevise(r)?r.devise:'EUR')+'. Montant modifiable dans « À cocher ».', 'good');
+    };
+  });
+  var rv = state.draftRev;
+  if(rv){
+    var raL = document.getElementById('raLabel'), raM = document.getElementById('raMontant'), raD = document.getElementById('raDate'), raC = document.getElementById('raCompte');
+    if(raL) raL.oninput = function(){ rv.label = raL.value; };
+    if(raM){ raM.oninput = function(){ rv.montant = raM.value; }; raM.onkeydown = function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); var ok = document.getElementById('raOk'); if(ok) ok.click(); } }; }
+    if(raD) raD.onchange = function(){ rv.date = raD.value; };
+    if(raC) raC.onchange = function(){ rv.compte = raC.value; render(); };
+    var raOk = document.getElementById('raOk');
+    if(raOk) raOk.onclick = function(){
+      var m = r2(parseAmount(rv.montant)), nom = String(rv.label||'').trim();
+      if(!(m>0)){ if(raM){ raM.classList.add('field-error'); raM.focus(); } return; }
+      if(!nom){ if(raL){ raL.classList.add('field-error'); raL.focus(); } return; }
+      var cpt = cptOk(rv.compte), dvc = devDe(cpt);
+      var r = {id:newId('r'), label:nom, source:'autre', mode:cpt, budget:0, reel: r2(versEur(m, dvc)), recu:true, ponctuel:true, date: rv.date||todayISO()};
+      if(dvc!=='EUR'){ r.devise = dvc; r.reelDevise = m; r.budgetDevise = 0; }
+      state.data.revenus.push(r);
+      persist(true, ['revenus']);
+      state.draftRev = {label:'', montant:'', compte:cpt, date:rv.date||todayISO()};
+      render();
+      toast('Revenu ajouté : '+escHtml(nom)+' '+money(m, dvc), 'good');
+    };
+  }
   /* ---------- ordre des cartes ---------- */
   Array.prototype.forEach.call(document.querySelectorAll('[data-ordreedit]'), function(b){
     b.onclick = function(){ state.ordreEdit = b.getAttribute('data-ordreedit'); render(); window.scrollTo(0,0); };
@@ -4766,19 +4910,19 @@ function wireEvents(){
       if(k==='renflouer'){
         var S = soldesComptes(), src = comptesActifs().filter(function(c){ return c.id!==arg && c.kind!=='especes' && (c.devise||'EUR')===devDe(arg); }).sort(function(x,y){ return S[y.id].solde - S[x.id].solde; })[0];
         state.vir = {de: src ? src.id : 'compte', vers: arg, montant: numStr(Math.ceil(-S[arg].solde)), recu:'', recuManuel:false, date: todayISO(), note:''};
-        allerA('comptes'); render(); window.scrollTo(0,0); return;
+        allerVirement(); return;
       }
       if(k==='verser'){
         var liv = d.epargnes.filter(function(e){ return catOf(e)==='epargne'; })[0];
         state.vir = {de:'compte', vers: liv ? 'ep:'+liv.id : 'compte', montant: numStr(+arg), recu:'', recuManuel:false, date: todayISO(), note:''};
-        allerA('comptes'); render(); window.scrollTo(0,0); return;
+        allerVirement(); return;
       }
       if(k==='chercher' || k==='deplist'){
-        state.sec.deplist = true; state.payFilter = 'all'; state.depQ = k==='chercher' ? arg : '';
+        allerA('ajout'); state.sec.deplist = true; state.payFilter = 'all'; state.depQ = k==='chercher' ? arg : '';
         render(); var el = document.querySelector('[data-sec="deplist"]'); if(el) el.scrollIntoView({block:'start', behavior:'smooth'}); return;
       }
       if(k==='jours'){
-        state.sec.cocherRev = true; state.sec.cocherPrel = true; render();
+        allerA('ajout'); state.sec.cocherRev = true; state.sec.cocherPrel = true; render();
         var vide = Array.prototype.find.call(document.querySelectorAll('[data-jour],[data-rjour]'), function(x){ return !x.value; });
         if(vide){ vide.scrollIntoView({block:'center', behavior:'smooth'}); setTimeout(function(){ vide.focus(); }, 350); }
         return;
@@ -4799,7 +4943,7 @@ function wireEvents(){
     b.onclick = function(){ allerComptes(); state.cptOpen = b.getAttribute('data-cptgo'); render(); var el = document.querySelector('[data-cptopen="'+state.cptOpen+'"]'); if(el) el.scrollIntoView({block:'center'}); };
   });
   Array.prototype.forEach.call(document.querySelectorAll('[data-govir]'), function(b){
-    b.onclick = function(){ allerComptes(); render(); window.scrollTo(0,0); var el = document.getElementById('virMontant'); if(el) el.focus(); };
+    b.onclick = function(){ state.tab = 'ajout'; state.addMode = 'virement'; try{ localStorage.setItem('bc_tab', 'ajout'); localStorage.setItem('bc_addmode', 'virement'); }catch(e){} render(); window.scrollTo(0,0); var el = document.getElementById('virMontant'); if(el) el.focus(); };
   });
   Array.prototype.forEach.call(document.querySelectorAll('[data-cptopen]'), function(b){
     b.onclick = function(){ var id = b.getAttribute('data-cptopen'); state.cptOpen = state.cptOpen===id ? null : id; render(); };
@@ -4897,7 +5041,7 @@ function wireEvents(){
     b.onclick = function(){
       var E = state.data.epargnes.filter(function(e){ return catOf(e)==='epargne'; }).sort(function(x,y){ return (epFin(y)||0)-(epFin(x)||0); });
       state.vir = {de: E[0] ? 'ep:'+E[0].id : 'compte', vers:'compte', montant: numStr(+b.getAttribute('data-puiser')), recu:'', recuManuel:false, date: todayISO(), note:''};
-      allerComptes(); render(); window.scrollTo(0,0);
+      allerVirement();
     };
   });
   var closeBtn = document.getElementById('closeMonthBtn');
@@ -4925,7 +5069,6 @@ function wireEvents(){
       var nb = document.getElementById('qaNature'); if(nb){ var nat = natureDuPoste(p); nb.className = 'nat-btn '+(nat==='envie'?'nat-env':'nat-bes'); nb.textContent = nat==='envie'?'🎉 Envie':'🏠 Besoin'; }
     }
   };
-  var qaChq = document.getElementById('qaCheque'); if(qaChq) qaChq.onchange = function(){ dr.cheque = qaChq.checked; render(); if(dr.cheque){ var n = document.getElementById('qaChqNum'); if(n) n.focus(); } };
   var qaChqNum = document.getElementById('qaChqNum'); if(qaChqNum) qaChqNum.oninput = function(){ dr.chqNum = qaChqNum.value; };
   var qaCpt = document.getElementById('qaCompte');
   if(qaCpt) qaCpt.onchange = function(){ dr.compte = qaCpt.value; try{ localStorage.setItem('bc_cpt', dr.compte); }catch(e){} render(); };
@@ -4951,7 +5094,7 @@ function wireEvents(){
     if(dv!=='EUR'){ o.devise = dv; o.montantDevise = sgn*montant; }
     deps.add(o);
     montant = Math.abs(o.montant);
-    state.draft = {date: dr.date||todayISO(), label:'', montant:'', posteId: dr.posteId, compte: cpt, sens: 'dep', nature: '', posteManuel: false, cheque: false, chqNum: ''};
+    state.draft = {date: dr.date||todayISO(), label:'', montant:'', posteId: dr.posteId, compte: cpt, sens: 'dep', nature: '', posteManuel: false, chqNum: ''};
     render();
     if(estRemb) toast('↩️ Remboursement de '+eur(montant)+' enregistré', 'good');
     else alerteApresAjout(dr.posteId, montant);
@@ -5271,9 +5414,10 @@ var resizeTimer=null;
 window.addEventListener('resize', function(){ if(!state.exists) return; clearTimeout(resizeTimer); resizeTimer=setTimeout(renderPareto, 200); });
 
 try{
-  var savedTab = localStorage.getItem('bc_tab'); if(savedTab==='saisie'||savedTab==='bilan'||savedTab==='budget'||savedTab==='comptes'||savedTab==='reglages'||savedTab==='epargne') state.tab = savedTab;
+  var savedTab = localStorage.getItem('bc_tab'); if(savedTab==='saisie'||savedTab==='bilan'||savedTab==='budget'||savedTab==='comptes'||savedTab==='reglages'||savedTab==='epargne'||savedTab==='ajout') state.tab = savedTab;
   try{ state.sec = JSON.parse(localStorage.getItem('bc_sec')||'{}') || {}; }catch(e){ state.sec = {}; }
   try{ state.guideInv = JSON.parse(localStorage.getItem('bc_guide')||'{}') || {}; }catch(e){ state.guideInv = {}; }
+  state.addMode = localStorage.getItem('bc_addmode') || 'carte';
   try{ state.repMode = localStorage.getItem('bc_repMode')==='reel' ? 'reel' : 'prevu'; state.paretoMode = localStorage.getItem('bc_paretoMode')==='reel' ? 'reel' : 'budget'; }catch(e){}
   var savedSort = localStorage.getItem('bc_sort'); if(savedSort) state.sortMode = savedSort;
   state.soldeDetOpen = localStorage.getItem('bc_det')==='1';

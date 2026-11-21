@@ -76,11 +76,26 @@ const seed = {
   verif('interrupteur « revenus » coupé', (await p.evaluate(() => state.data.auto.revenus)) === false);
   await p.screenshot({path: path.join(out, 'auto-reglages.png'), fullPage: true});
   /* programmer depuis le formulaire de virement (« Répéter chaque mois ») */
-  await p.click('[data-tab="comptes"]'); await p.waitForTimeout(300);
+await p.click('[data-tab="ajout"]'); await p.waitForTimeout(200); await p.click('[data-addmode="virement"]'); await p.waitForTimeout(300);
   await p.selectOption('#virDe', 'compte'); await p.selectOption('#virVers', 'ep:e1'); await p.waitForTimeout(150);
   await p.fill('#virMontant', '75'); await p.check('#virRepeter'); await p.click('#virOk'); await p.waitForTimeout(400);
   const prog = await p.evaluate(() => state.data.programmes);
   verif('« Répéter chaque mois » crée un programme (pas refait ce mois-ci)', prog.length === 4 && prog[3].montant === 75 && prog[3].dernierMois === prog[3].dernierMois && prog[3].dernierMois);
+  /* page Ajouter : revenu ponctuel, revenu prévu reçu, dépense en espèces, versement d'épargne */
+  await p.click('[data-tab="ajout"]'); await p.waitForTimeout(200);
+  await p.click('[data-addmode="revenu"]'); await p.waitForTimeout(300);
+  await p.click('[data-revrecu="r2"]').catch(() => {}); await p.waitForTimeout(300);
+  verif('revenu prévu marqué reçu depuis Ajouter', await p.evaluate(() => state.data.revenus.find(r => r.id === 'r2').recu === true));
+  await p.fill('#raLabel', 'Vente vélo'); await p.fill('#raMontant', '120'); await p.click('#raOk'); await p.waitForTimeout(300);
+  const pon = await p.evaluate(() => state.data.revenus.find(r => r.label === 'Vente vélo'));
+  verif('revenu ponctuel ajouté (reçu, prévu 0)', pon && pon.ponctuel && pon.recu && pon.reel === 120 && pon.budget === 0);
+  await p.click('[data-addmode="especes"]'); await p.waitForTimeout(300);
+  verif('mode Espèces : seul le porte-monnaie est proposé', JSON.stringify(await p.$$eval('#qaCompte option', o => o.map(x => x.value))) === '["especes"]');
+  await p.selectOption('#qaPoste', 'l2'); await p.fill('#qaLabel', 'Marché'); await p.fill('#qaMontant', '7'); await p.click('#qaAdd'); await p.waitForTimeout(300);
+  verif('dépense en espèces enregistrée', await p.evaluate(() => { const a = state.data.achats.find(x => x.label === 'Marché'); return a && a.compte === 'especes' && a.paiement === 'especes'; }));
+  await p.click('[data-addmode="epargne"]'); await p.waitForTimeout(300);
+  await p.fill('#vMontant', '30'); await p.click('#vAdd'); await p.waitForTimeout(300);
+  verif('versement d\'épargne enregistré depuis Ajouter', await p.evaluate(() => vers.docs.some(v => v.montant === 30)));
   /* ordre des cartes : descendre la 1re carte de l'onglet Mois */
   await p.click('[data-tab="saisie"]'); await p.waitForTimeout(300);
   const premiere = () => p.evaluate(() => { const c = [...document.querySelectorAll('#app > .card')].filter(x => !x.classList.contains('ordre-card'))[0]; return c ? c.className : ''; });
@@ -96,10 +111,9 @@ const seed = {
   await p.click('[data-tab="saisie"]'); await p.waitForTimeout(300);
   const s0 = await p.evaluate(() => soldesComptes().compte.solde);
   const f0 = await p.evaluate(() => aVenir().prelev);
-  await p.check('#qaCheque'); await p.waitForTimeout(200);
-  await p.fill('#qaChqNum', '1234'); await p.fill('#qaLabel', 'Plombier'); await p.fill('#qaMontant', '80');
+  await p.click('[data-tab="ajout"]'); await p.waitForTimeout(200); await p.click('[data-addmode="cheque"]'); await p.waitForTimeout(300);
   await p.selectOption('#qaPoste', 'l2'); await p.selectOption('#qaCompte', 'compte'); await p.waitForTimeout(200);
-  await p.check('#qaCheque').catch(() => {}); await p.fill('#qaChqNum', '1234'); await p.fill('#qaLabel', 'Plombier'); await p.fill('#qaMontant', '80');
+  await p.fill('#qaChqNum', '1234'); await p.fill('#qaLabel', 'Plombier'); await p.fill('#qaMontant', '80');
   await p.click('#qaAdd'); await p.waitForTimeout(400);
   const chq = await p.evaluate(() => state.data.achats.find(a => a.label === 'Plombier'));
   verif('chèque enregistré (n° 1234, à encaisser)', chq && chq.cheque && chq.cheque.num === '1234' && chq.cheque.encaisse === false);
@@ -111,6 +125,7 @@ const seed = {
   await p.click('#closeMonthBtn'); await p.waitForTimeout(300); await p.click('#confirmCloseBtn'); await p.waitForTimeout(900);
   const cr = await p.evaluate(() => state.data.chequesReport);
   verif('clôture : le chèque passe au mois suivant', cr.length === 1 && cr[0].num === '1234' && cr[0].montant === 80);
+  verif('clôture : le revenu ponctuel quitte la liste (il reste dans l\'archive)', await p.evaluate(() => !state.data.revenus.some(r => r.ponctuel)));
   const s1 = await p.evaluate(() => soldesComptes().compte.solde);
   verif('nouveau mois : solde reporté sans le chèque', Math.abs(s1 - s0) < 0.005, s1 + ' / ' + s0);
   await p.evaluate(() => { encaisserCheque(state.data.chequesReport[0].id, true); render(); }); await p.waitForTimeout(300);

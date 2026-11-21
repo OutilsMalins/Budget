@@ -78,6 +78,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   verif('Alice : budget créé, écran « Votre budget est prêt »', await jusqua(() => A.$('#seedBtn')));
   await A.click('#seedBtn');
   verif('Alice : l\'appli s\'ouvre', await jusqua(() => A.$('[data-tab="comptes"]')), A.errs.join(' | ') + ' / ' + (await A.textContent('body')).slice(0,200));
+  await A.click('[data-tab="ajout"]'); await A.waitForSelector('#qaLabel');
   await A.fill('#qaLabel', 'Boulangerie'); await A.fill('#qaMontant', '4,20'); await A.click('#qaAdd');
   const fid = await A.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k => k.startsWith('bc_ctx_')))).foyerId);
   let docs = {};
@@ -101,7 +102,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   verif('Carole : refus tant que l\'adresse n\'est pas confirmée', await jusqua(async () => (await C.textContent('#bvInvMsg')).includes('Confirmez')));
   verif('Carole : e-mail de vérification envoyé', await verifierEmail('carole@test.fr'));
   await C.click('#bvInvOk');
-  verif('Carole : rejoint et voit la dépense d\'Alice', await jusqua(async () => { const b = await C.$('[data-tab="saisie"]'); if(!b) return false; await C.evaluate(() => { state.sec = Object.assign(state.sec||{}, {deplist: true}); render(); }); return (await C.textContent('body')).includes('Boulangerie'); }, 15000));
+  verif('Carole : rejoint et voit la dépense d\'Alice', await jusqua(async () => { const b = await C.$('[data-tab="ajout"]'); if(!b) return false; await C.evaluate(() => { state.tab = 'ajout'; state.sec = Object.assign(state.sec||{}, {deplist: true}); render(); }); return (await C.textContent('body')).includes('Boulangerie'); }, 15000));
   await C.click('[data-tab="reglages"]');
   verif('Carole : 2 membres affichés', await jusqua(async () => { const t = await C.textContent('body'); return t.includes('alice@test.fr') && t.includes('carole@test.fr'); }));
 
@@ -116,7 +117,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   const moiId = await A.evaluate(() => [...document.querySelectorAll('.pf-item')].find(o => o.querySelector('b').textContent === 'Moi').getAttribute('data-pfid'));
   await A.click('.pf-item[data-pfid="' + moiId + '"]');
   verif('Alice : retour dans « Moi » (la dépense Boulangerie est là)', await jusqua(async () => { if(!(await A.$('#pfBtn'))) return false; if(!(await A.textContent('#pfBtn')).includes('Moi')) return false; return await A.evaluate(() => (state.data.achats||[]).some(a => a.label === 'Boulangerie')); }, 15000));
-  await A.click('[data-tab="comptes"]');
+  await A.click('[data-tab="ajout"]'); await A.click('[data-addmode="virement"]');
   verif('Alice : comptes de « Nous » proposés dans le virement', await jusqua(async () => (await A.$$eval('#virVers option', x => x.map(y => y.value))).includes('pf:' + nousId + ':compte')));
   await A.selectOption('#virDe', 'compte'); await A.selectOption('#virVers', 'pf:' + nousId + ':compte');
   await A.fill('#virMontant', '25'); await A.click('#virOk');
@@ -173,6 +174,7 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   verif('essai : budget d\'essai créé', await jusqua(() => E.$('#seedBtn')));
   await E.click('#seedBtn');
   verif('essai : l\'appli s\'ouvre sur le budget d\'essai', await jusqua(async () => !!(await E.$('[data-tab="comptes"]')) && (await E.textContent('#monthTitle')) !== 'Budget d\'origine'));
+  await E.click('[data-tab="ajout"]'); await E.waitForSelector('#qaLabel');
   await E.fill('#qaLabel', 'Essai'); await E.fill('#qaMontant', '99'); await E.click('#qaAdd');
   await attendre(800);
   let racine2 = null, depRacine = 0;
@@ -190,8 +192,12 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   const essaiId = await V.evaluate(() => [...document.querySelectorAll('.pf-item')].find(o => o.querySelector('b').textContent !== 'Nous').getAttribute('data-pfid'));
   await V.click('.pf-item[data-pfid="' + essaiId + '"]');
   verif('bascule : ouvrir le portefeuille d\'essai', await jusqua(async () => (await V.$('#pfBtn')) && !(await V.textContent('#pfBtn')).includes('Nous')));
-  await V.click('[data-tab="reglages"]'); await V.waitForSelector('#pfSuppr'); await V.click('#pfSuppr'); await V.click('#pfSupprOk');
-  verif('bascule : portefeuille d\'essai supprimé, retour sur « Nous »', await jusqua(async () => (await V.textContent('#monthTitle').catch(() => '')) === 'Budget d\'origine' && (await V.textContent('#pfBtn')).includes('Nous'), 20000));
+  await V.click('[data-tab="reglages"]'); await V.waitForSelector('#pfSuppr'); await V.click('#pfSuppr'); await V.waitForSelector('#pfSupprOk'); await attendre(400);
+  await V.click('#pfSupprOk');
+  /* la page a pu se redessiner au moment du toucher : on réessaie une fois si le bouton est toujours là */
+  await attendre(1500); if(await V.$('#pfSupprOk:not([disabled])')) await V.click('#pfSupprOk');
+  const okSuppr = await jusqua(async () => (await V.textContent('#monthTitle').catch(() => '')) === 'Budget d\'origine' && (await V.textContent('#pfBtn')).includes('Nous'), 20000);
+  verif('bascule : portefeuille d\'essai supprimé, retour sur « Nous »', okSuppr, V.errs.join(' | ') + ' / msg: ' + (await V.textContent('#rgFoyerMsg').catch(() => '?')) + ' / titre: ' + (await V.textContent('#monthTitle').catch(() => '?')) + ' / pf: ' + (await V.textContent('#pfBtn').catch(() => '?')));
   let resteEssai = true, racine3 = null;
   await env.withSecurityRulesDisabled(async ctx => { const f = ctx.firestore(); resteEssai = (await f.doc('foyers/' + essaiId).get()).exists; racine3 = (await f.doc('config/main').get()).data(); });
   verif('bascule : le portefeuille d\'essai a bien disparu, les données d\'origine sont intactes', !resteEssai && racine3.report.compte === 1234);
