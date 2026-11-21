@@ -112,6 +112,7 @@ Il prend la source et remplace des morceaux de texte précis. Chaque `rep(a, b)`
 - **Premier lancement d'un budget vide :** « Commencer un budget vide » ou importer une copie de secours (`{app:'budget-clair', docs:{"chemin": données}}`, lots de 400).
 - **Page Réglages** (`BC_HOOKS` : bouton rond en haut à droite) : compte, vérification d'adresse, foyer (nom, membres, invitations avec message à transmettre, quitter), copie de secours, suppression du compte (mot de passe redemandé ; seul membre → tout le budget est effacé).
 - `window.__BC_EMU = true` (tests seulement) branche l'émulateur Firebase.
+- **Mise à jour automatique** (21/11/2026) : l'appli posée sur l'écran d'accueil de l'iPhone gardait l'ancienne page. `BC_VERSION` = empreinte de la source + du script ; à l'ouverture et au retour dans l'appli, la page en ligne est relue sans cache (`?verif=`) ; si la version diffère, bandeau « Mettre à jour » → `location.replace('?v=<version>')` (adresse nouvelle, jamais l'ancienne copie), puis l'adresse est nettoyée.
 
 ## Architecture de `src/budget-clair.html`
 

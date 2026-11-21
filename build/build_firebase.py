@@ -15,7 +15,7 @@ Ce que la version page web ajoute :
 - les données d'origine (à la racine de la base) restent à leur place et servent
   telles quelles aux deux comptes autorisés par les règles (rien n'est copié) ;
 - page Réglages : compte, foyer, invitations, copie de secours, suppression du compte."""
-import sys, os, shutil
+import sys, os, shutil, hashlib
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ESSAI = '--essai' in sys.argv
 args = [a for a in sys.argv[1:] if a != '--essai']
@@ -23,6 +23,8 @@ src_path = args[1] if len(args) > 1 else os.path.join(ROOT, 'src', 'budget-clair
 out_path = args[0] if args else os.path.join(ROOT, 'essai' if ESSAI else '', 'index.html')
 src = open(src_path, encoding='utf-8').read()
 s = src
+# numéro de version = empreinte de la source et de ce script (change à chaque modification)
+VERSION = hashlib.sha1((src + open(os.path.abspath(__file__), encoding='utf-8').read()).encode('utf-8')).hexdigest()[:10]
 
 FIREBASE_CONFIG = """{
   apiKey: "AIzaSyDWRNKF0VKo6qzWlkVVtrXzHvEcJmQb218",
@@ -102,6 +104,9 @@ EXTRA_CSS = r"""
   .pf-new{border:0; border-radius:10px; background:var(--accent); color:var(--accent-ink, #fff); font:600 14px -apple-system, system-ui, sans-serif; padding:10px; margin-top:4px; cursor:pointer;}
   .pf-gerer{border:0; background:transparent; color:var(--accent); font:600 13px -apple-system, system-ui, sans-serif; padding:6px; cursor:pointer;}
   .hero{position:relative;}
+  .maj-bandeau{position:fixed; left:12px; right:12px; bottom:calc(86px + env(safe-area-inset-bottom,0px)); z-index:60; display:flex; align-items:center; gap:10px; background:#1d2230; color:#fff; border-radius:14px; padding:12px 12px 12px 14px; font-size:14px; box-shadow:0 10px 30px rgba(0,0,0,.3);}
+  .maj-bandeau span{flex:1 1 auto;}
+  .maj-bandeau button{flex:0 0 auto; border:0; border-radius:10px; background:#fff; color:#1d2230; font:700 14px -apple-system, system-ui, sans-serif; padding:9px 12px; cursor:pointer;}
   .essai-bandeau{position:sticky; top:0; z-index:30; background:#fdf3e1; color:#7a4a00; font-size:12.5px; font-weight:600; text-align:center; padding:6px 10px calc(6px); border-bottom:1px solid #f1dcb5;}
 </style>
 """
@@ -111,6 +116,34 @@ SHIM = r"""
 <script src="https://www.gstatic.com/firebasejs/%(v)s/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/%(v)s/firebase-firestore-compat.js"></script>
 <script>
+
+/* ===== Mise à jour automatique =====
+   Une appli posée sur l'écran d'accueil de l'iPhone garde l'ancienne page en mémoire.
+   À l'ouverture et au retour dans l'appli, on relit la page en ligne (sans cache) ;
+   si son numéro de version a changé, un bandeau propose « Mettre à jour ».
+   On recharge avec ?v=<version> : une adresse nouvelle, donc jamais l'ancienne copie. */
+var BC_VERSION = "%(version)s";
+(function(){
+  var dejaVu = false, dernier = 0;
+  function verifier(){
+    if(dejaVu || !window.fetch || Date.now() - dernier < 60000) return;
+    dernier = Date.now();
+    fetch(location.pathname + '?verif=' + Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
+      var m = String(t).match(/var BC_VERSION = "([0-9a-f]+)"/);
+      if(!m || m[1]===BC_VERSION) return;
+      dejaVu = true;
+      var b = document.createElement('div');
+      b.className = 'maj-bandeau';
+      b.innerHTML = '<span>Une nouvelle version de l\'appli est disponible.</span><button type="button" id="majOk">Mettre à jour</button>';
+      document.body.appendChild(b);
+      document.getElementById('majOk').onclick = function(){ location.replace(location.pathname + '?v=' + m[1]); };
+    }).catch(function(){});
+  }
+  window.addEventListener('load', function(){ setTimeout(verifier, 2500); });
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') verifier(); });
+  /* l'adresse ?v=… a servi : on la remet propre (même page, rien n'est rechargé) */
+  if(/[?&]v=/.test(location.search)) try{ history.replaceState(null, '', location.pathname); }catch(e){}
+})();
 /* ===== Firebase : comptes + base de données, à la place du stockage de Claude ===== */
 (function(){
 var CONFIG = %(cfg)s;
@@ -696,7 +729,7 @@ function supprimerPortefeuille(){
 }
 })();
 </script>
-""" % {'v': FB_VERSION, 'cfg': FIREBASE_CONFIG, 'essai': 'true' if ESSAI else 'false'}
+""" % {'v': FB_VERSION, 'cfg': FIREBASE_CONFIG, 'essai': 'true' if ESSAI else 'false', 'version': VERSION}
 
 head_end = s.index('</style>') + len('</style>')
 body_start = s.index('<script>')
