@@ -872,6 +872,24 @@
   .dl-ic{font-style:normal; margin-right:2px;}
   .qa-chq{display:flex; align-items:center; gap:8px;}
   .qa-chq span{font-size:12px; font-weight:600; color:var(--ink-muted); white-space:nowrap;}
+
+  /* cartes déplaçables (comme les widgets) */
+  .cw{-webkit-user-select:none; user-select:none; -webkit-touch-callout:none;}
+  .cw input, .cw textarea{-webkit-user-select:text; user-select:text;}
+  .cw:empty{display:none;}
+  .cw-edit .cw{animation:cwJiggle .28s ease-in-out infinite alternate; transform-origin:50% 40%;}
+  .cw-edit .cw:nth-child(2n){animation-delay:-.14s;}
+  .cw-edit .cw > *{pointer-events:none;}
+  .cw-edit .cw > .card{box-shadow:0 0 0 2px var(--accent-bg), var(--shadow);}
+  @keyframes cwJiggle{from{transform:rotate(-0.45deg);} to{transform:rotate(0.45deg);}}
+  .cw.cw-lift{animation:none !important; position:relative; z-index:40; transition:none;}
+  .cw.cw-lift > .card{box-shadow:0 18px 40px rgba(0,0,0,.28);}
+  body.cw-dragging{overflow:hidden;}
+  .cw-bar{position:sticky; top:calc(env(safe-area-inset-top, 0px) + 6px); z-index:45; display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:8px 8px 8px 12px; margin-bottom:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); font-size:13px; color:var(--ink-2);}
+  .cw-bar span{flex:1 1 auto; min-width:0;}
+  .cw-bar button{flex:0 0 auto; border:0; border-radius:10px; padding:8px 12px; font:650 13px -apple-system, system-ui, sans-serif; cursor:pointer; background:var(--surface); color:var(--ink-2);}
+  .cw-bar #ordreFini{background:var(--accent); color:var(--accent-ink, #fff);}
+  @media (prefers-reduced-motion: reduce){ .cw-edit .cw{animation:none;} }
   /* =================== Styles au choix (Réglages → Apparence), sur <html data-theme="a…e"> ===================
      Chaque style redéfinit TOUTES les couleurs (variables) : fond, cartes, textes, lignes, accent.
      Les règles « [data-theme] … » remplacent les couleurs écrites en dur plus haut. */
@@ -1078,28 +1096,60 @@
 
 /* ===== Mise à jour automatique =====
    Une appli posée sur l'écran d'accueil de l'iPhone garde l'ancienne page en mémoire.
-   À l'ouverture et au retour dans l'appli, on relit la page en ligne (sans cache) ;
-   si son numéro de version a changé, un bandeau propose « Mettre à jour ».
+   À l'ouverture, au retour dans l'appli et toutes les 30 minutes, on relit la page en
+   ligne (sans cache). Si son numéro de version a changé :
+   - personne ne saisit rien → l'appli se recharge toute seule (après l'envoi des
+     dernières écritures à la base) ;
+   - une saisie est en cours → bandeau « Mettre à jour », et rechargement automatique
+     dès que la saisie est finie.
    On recharge avec ?v=<version> : une adresse nouvelle, donc jamais l'ancienne copie. */
-var BC_VERSION = "f51709b9e3";
+var BC_VERSION = "adad5a3956";
 (function(){
-  var dejaVu = false, dernier = 0;
-  function verifier(){
-    if(dejaVu || !window.fetch || Date.now() - dernier < 60000) return;
+  var nouvelle = null, dernier = 0, bandeau = null;
+  /* une saisie en cours ? (champ actif, brouillon rempli, fenêtre de confirmation ouverte…) */
+  function occupe(){
+    var a = document.activeElement;
+    if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return true;
+    var S = window.state; if(!S) return false;
+    if(S.draft && (S.draft.label || S.draft.montant)) return true;
+    if(S.vir && (S.vir.montant || S.vir.note)) return true;
+    if(S.draftRev && (S.draftRev.label || S.draftRev.montant)) return true;
+    if(S.draftVersement && S.draftVersement.montant) return true;
+    if(S.pgDraft || S.editMois || S.confirmClose || S.ordreEdit || S.dragging || S.writing || S.saveTimer) return true;
+    return false;
+  }
+  function recharger(){
+    var go = function(){ location.replace(location.pathname + '?v=' + nouvelle); };
+    try{ if(window.firebase && firebase.apps.length){ var p = firebase.firestore().waitForPendingWrites(); var t = setTimeout(go, 4000); p.then(function(){ clearTimeout(t); go(); }, go); return; } }catch(e){}
+    go();
+  }
+  function montrerBandeau(){
+    if(bandeau) return;
+    bandeau = document.createElement('div');
+    bandeau.className = 'maj-bandeau';
+    bandeau.innerHTML = '<span>Nouvelle version de l\'appli. Elle s\'installera dès que vous aurez fini votre saisie.</span><button type="button" id="majOk">Mettre à jour</button>';
+    document.body.appendChild(bandeau);
+    document.getElementById('majOk').onclick = recharger;
+  }
+  function appliquer(){
+    if(!nouvelle) return;
+    if(occupe()){ montrerBandeau(); setTimeout(appliquer, 15000); return; }
+    recharger();
+  }
+  function verifier(force){
+    if(nouvelle){ appliquer(); return; }
+    if(!window.fetch || (!force && Date.now() - dernier < 60000)) return;
     dernier = Date.now();
     fetch(location.pathname + '?verif=' + Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
       var m = String(t).match(/var BC_VERSION = "([0-9a-f]+)"/);
       if(!m || m[1]===BC_VERSION) return;
-      dejaVu = true;
-      var b = document.createElement('div');
-      b.className = 'maj-bandeau';
-      b.innerHTML = '<span>Une nouvelle version de l\'appli est disponible.</span><button type="button" id="majOk">Mettre à jour</button>';
-      document.body.appendChild(b);
-      document.getElementById('majOk').onclick = function(){ location.replace(location.pathname + '?v=' + m[1]); };
+      nouvelle = m[1];
+      appliquer();
     }).catch(function(){});
   }
-  window.addEventListener('load', function(){ setTimeout(verifier, 2500); });
-  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') verifier(); });
+  window.addEventListener('load', function(){ setTimeout(function(){ verifier(true); }, 2500); });
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') verifier(false); });
+  setInterval(function(){ verifier(true); }, 30*60*1000);
   /* l'adresse ?v=… a servi : on la remet propre (même page, rien n'est rechargé) */
   if(/[?&]v=/.test(location.search)) try{ history.replaceState(null, '', location.pathname); }catch(e){}
 })();
@@ -1807,7 +1857,7 @@ function inputFocused(){
    ce qui rendait parfois la corbeille « sans effet »). */
 function requestRender(){
   if(!state.ready) return;
-  if(inputFocused() || state.pointerActive){ state.needsRender = true; return; }
+  if(inputFocused() || state.pointerActive || state.dragging){ state.needsRender = true; return; }
   state.needsRender = false;
   render();
 }
@@ -2642,21 +2692,104 @@ function ordonner(tab, items){
   }).map(function(y){ return y.x; });
 }
 function pageCartes(tab, items){
-  var L = ordonner(tab, items), h = '';
-  window.__ordreIds = window.__ordreIds || {}; window.__ordreIds[tab] = L.map(function(x){ return x[0]; });
-  if(state.ordreEdit===tab){
-    h += '<div class="card ordre-card"><h3>Ordre des cartes</h3><p class="hint-line" style="margin-top:0;">Montez ou descendez chaque carte. L\'ordre est gardé sur ce téléphone.</p><div class="ordre-list">';
-    L.forEach(function(x, i){
-      h += '<div class="ordre-row"><span>'+escHtml(x[1])+'</span>'+
-        '<button type="button" class="ord-btn" data-ordre="'+tab+':'+i+':-1"'+(i===0?' disabled':'')+' aria-label="Monter">↑</button>'+
-        '<button type="button" class="ord-btn" data-ordre="'+tab+':'+i+':1"'+(i===L.length-1?' disabled':'')+' aria-label="Descendre">↓</button></div>';
-    });
-    h += '</div><div class="tf-row" style="margin-top:12px;"><button class="btn btn-primary btn-sm" id="ordreFini">Terminé</button><button class="btn btn-ghost btn-sm" id="ordreDefaut">Ordre d\'origine</button></div></div>';
-  }
-  L.forEach(function(x){ h += x[2](); });
-  if(state.ordreEdit!==tab) h += '<div class="ordre-bas"><button type="button" class="link-btn" data-ordreedit="'+tab+'">⇅ Réorganiser les cartes</button></div>';
-  return h;
+  var L = ordonner(tab, items), edit = state.ordreEdit===tab;
+  var h = '';
+  if(edit) h += barreOrdre();
+  h += '<div class="cw-list'+(edit?' cw-edit':'')+'" data-cwtab="'+tab+'">';
+  L.forEach(function(x){ h += '<div class="cw" data-cw="'+x[0]+'">'+x[2]()+'</div>'; });
+  return h + '</div>';
 }
+function barreOrdre(){ return '<div class="cw-bar"><span>Maintenez une carte et faites-la glisser</span><button type="button" id="ordreDefaut">Ordre d\'origine</button><button type="button" id="ordreFini">OK</button></div>'; }
+/* ---------- déplacer les cartes au doigt, comme les widgets de l'iPhone ----------
+   Rester appuyé ~0,5 s sur une carte → mode « réorganiser » (les cartes tremblent) et
+   la carte suit le doigt. En mode réorganiser, un appui court (0,2 s) suffit. Un
+   glissement rapide fait défiler la page normalement. Au lâcher, l'ordre est gardé. */
+var Drag = {timer:null, el:null, list:null, startY:0, startX:0, grabY:0, lastY:0, actif:false, scroll:null};
+function dragFin(sauver){
+  clearTimeout(Drag.timer); Drag.timer = null;
+  if(Drag.scroll){ cancelAnimationFrame(Drag.scroll); Drag.scroll = null; }
+  var etaitActif = Drag.actif;
+  if(etaitActif && Drag.el){
+    Drag.el.classList.remove('cw-lift'); Drag.el.style.transform = '';
+    if(sauver && Drag.list){
+      var tab = Drag.list.getAttribute('data-cwtab');
+      var ids = Array.prototype.map.call(Drag.list.children, function(x){ return x.getAttribute('data-cw'); }).filter(Boolean);
+      try{ localStorage.setItem('bc_ordre_'+tab, JSON.stringify(ids)); }catch(e){}
+    }
+  }
+  Drag.el = null; Drag.list = null; Drag.actif = false;
+  state.dragging = false; document.body.classList.remove('cw-dragging');
+  if(etaitActif) setTimeout(function(){ render(); }, 0);
+}
+function dragPlacer(y){
+  var el = Drag.el, list = Drag.list; if(!el || !list) return;
+  Drag.lastY = y;
+  var autres = Array.prototype.filter.call(list.children, function(x){ return x!==el && x.offsetHeight>0; });
+  var avant = null;
+  for(var i=0;i<autres.length;i++){ var r = autres[i].getBoundingClientRect(); if(y < r.top + r.height/2){ avant = autres[i]; break; } }
+  if(avant){ if(el.nextSibling!==avant) list.insertBefore(el, avant); }
+  else if(list.lastElementChild!==el) list.appendChild(el);
+  el.style.transform = 'none';
+  var top = el.getBoundingClientRect().top;
+  el.style.transform = 'translateY('+(y - Drag.grabY - top)+'px) scale(1.02)';
+}
+function dragDefilement(){
+  if(!Drag.actif) return;
+  var y = Drag.lastY, h = window.innerHeight, v = 0;
+  if(y < 90) v = -Math.ceil((90-y)/6); else if(y > h-140) v = Math.ceil((y-(h-140))/6);
+  if(v){ window.scrollBy(0, v); dragPlacer(y); }
+  Drag.scroll = requestAnimationFrame(dragDefilement);
+}
+function dragDemarrer(){
+  var el = Drag.el; if(!el || !Drag.list) return;
+  var tab = Drag.list.getAttribute('data-cwtab');
+  if(state.ordreEdit!==tab){
+    /* entrer en mode réorganiser sans redessiner (la carte reste sous le doigt) */
+    state.ordreEdit = tab; Drag.list.classList.add('cw-edit');
+    var tmp = document.createElement('div'); tmp.innerHTML = barreOrdre();
+    Drag.list.parentNode.insertBefore(tmp.firstChild, Drag.list);
+    branchOrdreBoutons();
+  }
+  Drag.actif = true; state.dragging = true; document.body.classList.add('cw-dragging');
+  Drag.grabY = Drag.startY - el.getBoundingClientRect().top;
+  el.classList.add('cw-lift');
+  try{ if(navigator.vibrate) navigator.vibrate(10); }catch(e){}
+  dragPlacer(Drag.startY);
+  Drag.scroll = requestAnimationFrame(dragDefilement);
+}
+function branchOrdreBoutons(){
+  var of = document.getElementById('ordreFini'); if(of) of.onclick = function(){ state.ordreEdit = null; render(); toast('Ordre enregistré sur ce téléphone', 'good'); };
+  var od = document.getElementById('ordreDefaut'); if(od) od.onclick = function(){ try{ localStorage.removeItem('bc_ordre_'+state.ordreEdit); }catch(e){} render(); };
+}
+function dragDebut(x, y, cible){
+  var cw = cible && cible.closest ? cible.closest('.cw') : null; if(!cw) return;
+  var list = cw.parentNode; if(!list || !list.classList || !list.classList.contains('cw-list')) return;
+  var edit = list.classList.contains('cw-edit');
+  if(!edit && cible.closest('input, select, textarea')) return;   /* dans un champ : on saisit */
+  Drag.el = cw; Drag.list = list; Drag.startY = y; Drag.startX = x; Drag.lastY = y;
+  clearTimeout(Drag.timer);
+  Drag.timer = setTimeout(dragDemarrer, edit ? 180 : 450);
+}
+function dragBouge(x, y){
+  if(Drag.actif){ dragPlacer(y); return true; }
+  if(Drag.timer && (Math.abs(y - Drag.startY) > 8 || Math.abs(x - Drag.startX) > 8)){ clearTimeout(Drag.timer); Drag.timer = null; Drag.el = null; }
+  return false;
+}
+function dragLache(){ if(Drag.actif) dragFin(true); else { clearTimeout(Drag.timer); Drag.timer = null; Drag.el = null; } }
+/* au doigt : événements tactiles (le navigateur annule les « pointeurs » sur un appui long) */
+document.addEventListener('touchstart', function(ev){ if(ev.touches.length!==1){ dragLache(); return; } var t = ev.touches[0]; dragDebut(t.clientX, t.clientY, ev.target); }, {passive:true, capture:true});
+document.addEventListener('touchmove', function(ev){ var t = ev.touches[0]; if(t && dragBouge(t.clientX, t.clientY)) ev.preventDefault(); }, {passive:false, capture:true});
+document.addEventListener('touchend', dragLache, true);
+document.addEventListener('touchcancel', dragLache, true);
+/* à la souris (ordinateur) */
+document.addEventListener('pointerdown', function(ev){ if(ev.pointerType==='mouse' && !ev.button) dragDebut(ev.clientX, ev.clientY, ev.target); }, true);
+document.addEventListener('pointermove', function(ev){ if(ev.pointerType==='mouse') dragBouge(ev.clientX, ev.clientY); }, true);
+document.addEventListener('pointerup', function(ev){ if(ev.pointerType==='mouse') dragLache(); }, true);
+/* pas de menu sur l'appui long, pas de clic dans les cartes en mode réorganiser */
+document.addEventListener('contextmenu', function(ev){ if(Drag.timer || Drag.actif || (ev.target.closest && ev.target.closest('.cw-edit'))) ev.preventDefault(); });
+document.addEventListener('click', function(ev){
+  if(Drag.actif || (ev.target.closest && ev.target.closest('.cw-edit .cw'))){ ev.preventDefault(); ev.stopPropagation(); }
+}, true);
 function pageSaisie(){
   var t = totals();
   return pageCartes('saisie', [
@@ -5524,22 +5657,7 @@ function wireEvents(){
     };
   }
   /* ---------- ordre des cartes ---------- */
-  Array.prototype.forEach.call(document.querySelectorAll('[data-ordreedit]'), function(b){
-    b.onclick = function(){ state.ordreEdit = b.getAttribute('data-ordreedit'); render(); window.scrollTo(0,0); };
-  });
-  Array.prototype.forEach.call(document.querySelectorAll('[data-ordre]'), function(b){
-    b.onclick = function(){
-      var v = b.getAttribute('data-ordre').split(':'), tab = v[0], i = +v[1], dir = +v[2];
-      var cur = (window.__ordreIds && window.__ordreIds[tab]) || null;
-      var L = (cur || []).slice();
-      var j = i + dir; if(j<0 || j>=L.length) return;
-      var x = L[i]; L[i] = L[j]; L[j] = x;
-      try{ localStorage.setItem('bc_ordre_'+tab, JSON.stringify(L)); }catch(e){}
-      render();
-    };
-  });
-  var of = document.getElementById('ordreFini'); if(of) of.onclick = function(){ state.ordreEdit = null; render(); toast('Ordre enregistré sur ce téléphone', 'good'); };
-  var od = document.getElementById('ordreDefaut'); if(od) od.onclick = function(){ try{ localStorage.removeItem('bc_ordre_'+state.ordreEdit); }catch(e){} render(); };
+  branchOrdreBoutons();
   /* ---------- réglages : automatismes ---------- */
   Array.prototype.forEach.call(document.querySelectorAll('[data-auto]'), function(el){
     el.onchange = function(){ state.data.auto = state.data.auto || {}; state.data.auto[el.getAttribute('data-auto')] = el.checked; persist(true, ['auto']); render(); };

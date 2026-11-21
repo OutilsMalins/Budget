@@ -119,28 +119,60 @@ SHIM = r"""
 
 /* ===== Mise à jour automatique =====
    Une appli posée sur l'écran d'accueil de l'iPhone garde l'ancienne page en mémoire.
-   À l'ouverture et au retour dans l'appli, on relit la page en ligne (sans cache) ;
-   si son numéro de version a changé, un bandeau propose « Mettre à jour ».
+   À l'ouverture, au retour dans l'appli et toutes les 30 minutes, on relit la page en
+   ligne (sans cache). Si son numéro de version a changé :
+   - personne ne saisit rien → l'appli se recharge toute seule (après l'envoi des
+     dernières écritures à la base) ;
+   - une saisie est en cours → bandeau « Mettre à jour », et rechargement automatique
+     dès que la saisie est finie.
    On recharge avec ?v=<version> : une adresse nouvelle, donc jamais l'ancienne copie. */
 var BC_VERSION = "%(version)s";
 (function(){
-  var dejaVu = false, dernier = 0;
-  function verifier(){
-    if(dejaVu || !window.fetch || Date.now() - dernier < 60000) return;
+  var nouvelle = null, dernier = 0, bandeau = null;
+  /* une saisie en cours ? (champ actif, brouillon rempli, fenêtre de confirmation ouverte…) */
+  function occupe(){
+    var a = document.activeElement;
+    if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return true;
+    var S = window.state; if(!S) return false;
+    if(S.draft && (S.draft.label || S.draft.montant)) return true;
+    if(S.vir && (S.vir.montant || S.vir.note)) return true;
+    if(S.draftRev && (S.draftRev.label || S.draftRev.montant)) return true;
+    if(S.draftVersement && S.draftVersement.montant) return true;
+    if(S.pgDraft || S.editMois || S.confirmClose || S.ordreEdit || S.dragging || S.writing || S.saveTimer) return true;
+    return false;
+  }
+  function recharger(){
+    var go = function(){ location.replace(location.pathname + '?v=' + nouvelle); };
+    try{ if(window.firebase && firebase.apps.length){ var p = firebase.firestore().waitForPendingWrites(); var t = setTimeout(go, 4000); p.then(function(){ clearTimeout(t); go(); }, go); return; } }catch(e){}
+    go();
+  }
+  function montrerBandeau(){
+    if(bandeau) return;
+    bandeau = document.createElement('div');
+    bandeau.className = 'maj-bandeau';
+    bandeau.innerHTML = '<span>Nouvelle version de l\'appli. Elle s\'installera dès que vous aurez fini votre saisie.</span><button type="button" id="majOk">Mettre à jour</button>';
+    document.body.appendChild(bandeau);
+    document.getElementById('majOk').onclick = recharger;
+  }
+  function appliquer(){
+    if(!nouvelle) return;
+    if(occupe()){ montrerBandeau(); setTimeout(appliquer, 15000); return; }
+    recharger();
+  }
+  function verifier(force){
+    if(nouvelle){ appliquer(); return; }
+    if(!window.fetch || (!force && Date.now() - dernier < 60000)) return;
     dernier = Date.now();
     fetch(location.pathname + '?verif=' + Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
       var m = String(t).match(/var BC_VERSION = "([0-9a-f]+)"/);
       if(!m || m[1]===BC_VERSION) return;
-      dejaVu = true;
-      var b = document.createElement('div');
-      b.className = 'maj-bandeau';
-      b.innerHTML = '<span>Une nouvelle version de l\'appli est disponible.</span><button type="button" id="majOk">Mettre à jour</button>';
-      document.body.appendChild(b);
-      document.getElementById('majOk').onclick = function(){ location.replace(location.pathname + '?v=' + m[1]); };
+      nouvelle = m[1];
+      appliquer();
     }).catch(function(){});
   }
-  window.addEventListener('load', function(){ setTimeout(verifier, 2500); });
-  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') verifier(); });
+  window.addEventListener('load', function(){ setTimeout(function(){ verifier(true); }, 2500); });
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') verifier(false); });
+  setInterval(function(){ verifier(true); }, 30*60*1000);
   /* l'adresse ?v=… a servi : on la remet propre (même page, rien n'est rechargé) */
   if(/[?&]v=/.test(location.search)) try{ history.replaceState(null, '', location.pathname); }catch(e){}
 })();

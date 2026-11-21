@@ -112,7 +112,7 @@ Il prend la source et remplace des morceaux de texte précis. Chaque `rep(a, b)`
 - **Premier lancement d'un budget vide :** « Commencer un budget vide » ou importer une copie de secours (`{app:'budget-clair', docs:{"chemin": données}}`, lots de 400).
 - **Page Réglages** (`BC_HOOKS` : bouton rond en haut à droite) : compte, vérification d'adresse, foyer (nom, membres, invitations avec message à transmettre, quitter), copie de secours, suppression du compte (mot de passe redemandé ; seul membre → tout le budget est effacé).
 - `window.__BC_EMU = true` (tests seulement) branche l'émulateur Firebase.
-- **Mise à jour automatique** (21/11/2026) : l'appli posée sur l'écran d'accueil de l'iPhone gardait l'ancienne page. `BC_VERSION` = empreinte de la source + du script ; à l'ouverture et au retour dans l'appli, la page en ligne est relue sans cache (`?verif=`) ; si la version diffère, bandeau « Mettre à jour » → `location.replace('?v=<version>')` (adresse nouvelle, jamais l'ancienne copie), puis l'adresse est nettoyée.
+- **Mise à jour automatique** (21/11/2026, principe demandé « comme l'appli factures », sans rien y prendre) : l'appli posée sur l'écran d'accueil de l'iPhone gardait l'ancienne page. `BC_VERSION` = empreinte de la source + du script ; à l'ouverture, au retour dans l'appli et toutes les 30 min, la page en ligne est relue sans cache (`?verif=`). Nouvelle version + personne ne saisit (`occupe()` : champ actif, brouillons, clôture, réorganisation, écriture en cours) → rechargement automatique après `waitForPendingWrites()` ; sinon bandeau « Mettre à jour » et nouvel essai toutes les 15 s. Rechargement par `location.replace('?v=<version>')` (adresse nouvelle), puis l'adresse est nettoyée.
 
 ## Architecture de `src/budget-clair.html`
 
@@ -183,9 +183,9 @@ Un seul identifiant, plusieurs **portefeuilles** (= foyers), par ex. « Moi » (
 - **Virement entre portefeuilles** : options `pf:<portefeuille>:<compte>` dans le virement (comptes des autres portefeuilles lus au lancement : `BC_HOOKS.autresComptes`). Noté des deux côtés avec le même identifiant : ici `{de, vers:'ext', ext:{pf, nom, compte, compteLabel, devise}}`, là-bas `{de:'ext', vers, montantVers}` (écrit par `BC_HOOKS.ecrireAutre`, au mois en cours de l'autre portefeuille). Pas avec un placement. Supprimer un côté ne supprime pas l'autre.
 - ⚠️ L'ancienne appli (racine) ne connaît pas `de:'ext'` : ne pas écrire de virement entre portefeuilles dans les données d'origine tant qu'elle sert encore (la version d'essai ne les touche pas).
 
-### Ordre des cartes (20/11/2026)
+### Ordre des cartes (21/11/2026 : comme les widgets de l'iPhone)
 
-Chaque onglet est construit par `pageCartes(onglet, [[id, nom, fonction], …])`. « ⇅ Réorganiser les cartes » (en bas de chaque onglet) ouvre la carte « Ordre des cartes » (flèches ↑ ↓, « Ordre d'origine »). L'ordre est gardé par téléphone (`localStorage bc_ordre_<onglet>`) ; une carte nouvelle se place à la fin. Le bandeau PDF du Bilan et le choix « en cours / préparer » du Budget restent en haut.
+Chaque onglet est construit par `pageCartes(onglet, [[id, nom, fonction], …])` : chaque carte est dans un `.cw` (data-cw) d'une `.cw-list` (data-cwtab). **Rester appuyé ~0,45 s** sur une carte → mode « réorganiser » (`state.ordreEdit`, cartes qui tremblent, bandeau « Ordre d'origine / OK » `barreOrdre()`), la carte suit le doigt (`Drag`, `dragPlacer`, défilement auto près des bords) ; en mode réorganiser, 0,18 s suffit ; un glissement rapide fait défiler la page. Au doigt : événements **touch** (le navigateur annule les « pointeurs » sur un appui long) avec `touchmove` non passif ; à la souris : pointer events. Pas de redessin pendant le déplacement (`state.dragging` dans `requestRender`). Ordre gardé par téléphone (`localStorage bc_ordre_<onglet>`). Plus de bouton en bas (demande de l'utilisateur). Vérifié au doigt sur un iPhone simulé (Chromium), pas sur un vrai iPhone.
 
 ### Onglet Épargne et aide au choix (20/11/2026)
 

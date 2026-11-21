@@ -210,9 +210,12 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
 
   /* --- mise à jour automatique : un téléphone qui garde une ancienne copie --- */
   const U = await nouvellePage('/vieux/');
-  verif('mise à jour : le bandeau « Mettre à jour » apparaît', await jusqua(() => U.$('#majOk'), 15000));
-  await U.click('#majOk');
-  verif('mise à jour : la nouvelle version est chargée', await jusqua(async () => (await U.evaluate(() => window.BC_VERSION)) !== '0000000000' && !(await U.$('#majOk')), 15000));
+  verif('mise à jour : sans saisie en cours, l\'appli se met à jour toute seule', await jusqua(async () => (await U.evaluate(() => window.BC_VERSION).catch(() => '0000000000')) !== '0000000000', 15000));
+  const U2 = await nouvellePage('/vieux/');
+  await U2.waitForSelector('#lgEmail'); await U2.focus('#lgEmail'); await U2.type('#lgEmail', 'en-train-de-taper');
+  verif('mise à jour : pendant une saisie, bandeau « Mettre à jour » (pas de rechargement)', await jusqua(async () => !!(await U2.$('#majOk')) && (await U2.inputValue('#lgEmail')) === 'en-train-de-taper', 15000));
+  await U2.click('#majOk');
+  verif('mise à jour : un toucher sur le bandeau charge la nouvelle version', await jusqua(async () => (await U2.evaluate(() => window.BC_VERSION).catch(() => '0000000000')) !== '0000000000', 15000));
   for(const [nom, p] of [['Alice', A], ['Carole', C], ['Bob', B], ['Origine', O], ['Essai', E], ['Bascule', V]]) verif('aucune erreur JS (' + nom + ')', !p.errs.length, p.errs.join(' | '));
   await browser.close(); srv.close(); await env.cleanup();
   console.log('\n' + (n - ko) + ' / ' + n + ' vérifications réussies');
