@@ -96,17 +96,22 @@ await p.click('[data-tab="ajout"]'); await p.waitForTimeout(200); await p.click(
   await p.click('[data-addmode="epargne"]'); await p.waitForTimeout(300);
   await p.fill('#vMontant', '30'); await p.click('#vAdd'); await p.waitForTimeout(300);
   verif('versement d\'épargne enregistré depuis Ajouter', await p.evaluate(() => vers.docs.some(v => v.montant === 30)));
-  /* ordre des cartes : descendre la 1re carte de l'onglet Mois */
-  await p.click('[data-tab="saisie"]'); await p.waitForTimeout(300);
-  const premiere = () => p.evaluate(() => { const c = [...document.querySelectorAll('#app > .card')].filter(x => !x.classList.contains('ordre-card'))[0]; return c ? c.className : ''; });
-  verif('ordre d\'origine : la carte des comptes en premier', (await premiere()).includes('solde-card'));
-  await p.click('[data-ordreedit="saisie"]'); await p.waitForTimeout(300);
-  await p.click('[data-ordre="saisie:0:1"]'); await p.waitForTimeout(300);
-  await p.click('#ordreFini'); await p.waitForTimeout(300);
-  verif('après « ↓ » : la carte des comptes n\'est plus en premier', !(await premiere()).includes('solde-card'));
-  verif('ordre gardé sur le téléphone', (await p.evaluate(() => JSON.parse(localStorage.getItem('bc_ordre_saisie'))[1])) === 'solde');
-  await p.click('[data-ordreedit="saisie"]'); await p.waitForTimeout(200); await p.click('#ordreDefaut'); await p.waitForTimeout(200); await p.click('#ordreFini'); await p.waitForTimeout(300);
-  verif('« Ordre d\'origine » remet la carte des comptes en premier', (await premiere()).includes('solde-card'));
+  /* ordre des cartes : rester appuyé sur une carte puis la faire glisser (comme les widgets) */
+  await p.click('[data-tab="saisie"]'); await p.waitForTimeout(400);
+  const ordreAffiche = () => p.$$eval('.cw-list > .cw', l => l.filter(x => x.offsetHeight > 0).map(x => x.getAttribute('data-cw')));
+  verif('ordre d\'origine : la carte des comptes en premier', (await ordreAffiche())[0] === 'solde');
+  const der = await p.$('.cw[data-cw="dernieres"]'); await der.scrollIntoViewIfNeeded();
+  const bd = await der.boundingBox(), bs = await (await p.$('.cw[data-cw="solde"]')).boundingBox();
+  await p.mouse.move(bd.x + 40, bd.y + 20); await p.mouse.down();
+  await p.waitForTimeout(700);                                   /* appui long */
+  verif('appui long : mode « réorganiser » (bandeau OK)', !!(await p.$('.cw-bar #ordreFini')));
+  for (let k = 1; k <= 12; k++) { await p.mouse.move(bd.x + 40, bd.y + 20 - (bd.y + 20 - (bs.y + 5)) * k / 12); await p.waitForTimeout(30); }
+  await p.mouse.up(); await p.waitForTimeout(400);
+  verif('après glisser-déposer : « Dernières dépenses » en premier', (await ordreAffiche())[0] === 'dernieres', (await ordreAffiche()).join(','));
+  verif('ordre gardé sur le téléphone', (await p.evaluate(() => JSON.parse(localStorage.getItem('bc_ordre_saisie'))[0])) === 'dernieres');
+  await p.click('#ordreDefaut'); await p.waitForTimeout(300); await p.click('#ordreFini'); await p.waitForTimeout(300);
+  verif('« Ordre d\'origine » puis OK : la carte des comptes revient en premier', (await ordreAffiche())[0] === 'solde' && !(await p.$('.cw-bar')));
+  verif('plus de bouton en bas pour réorganiser', !(await p.$('[data-ordreedit]')));
   /* chèques : le solde ne baisse qu'à l'encaissement ; reporté à la clôture */
   await p.click('[data-tab="saisie"]'); await p.waitForTimeout(300);
   const s0 = await p.evaluate(() => soldesComptes().compte.solde);

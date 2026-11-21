@@ -41,6 +41,12 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   /* petit serveur : la page + les fichiers Firebase locaux (pas d'accès à gstatic ici) */
   const NM = path.join(__dirname, 'node_modules', 'firebase');
   const srv = http.createServer((req, res) => {
+    /* « /vieux/ » : la page avec un ancien numéro de version ; sa vérification (?verif=) reçoit la nouvelle */
+    if(req.url.startsWith('/vieux/')){
+      const vieux = !/[?&](verif|v)=/.test(req.url);
+      res.writeHead(200, {'content-type': 'text/html; charset=utf-8'});
+      return res.end(vieux ? html.replace(/var BC_VERSION = "[0-9a-f]+"/, 'var BC_VERSION = "0000000000"') : html);
+    }
     if(req.url.startsWith('/essai/')){ res.writeHead(200, {'content-type': 'text/html; charset=utf-8'}); return res.end(htmlEssai); }
     if(req.url === '/' || req.url.startsWith('/index.html')){ res.writeHead(200, {'content-type': 'text/html; charset=utf-8'}); return res.end(html); }
     res.writeHead(404); res.end();
@@ -202,6 +208,14 @@ async function jusqua(fn, ms){ const t = Date.now(); while(Date.now() - t < (ms 
   await env.withSecurityRulesDisabled(async ctx => { const f = ctx.firestore(); resteEssai = (await f.doc('foyers/' + essaiId).get()).exists; racine3 = (await f.doc('config/main').get()).data(); });
   verif('bascule : le portefeuille d\'essai a bien disparu, les données d\'origine sont intactes', !resteEssai && racine3.report.compte === 1234);
 
+  /* --- mise à jour automatique : un téléphone qui garde une ancienne copie --- */
+  const U = await nouvellePage('/vieux/');
+  verif('mise à jour : sans saisie en cours, l\'appli se met à jour toute seule', await jusqua(async () => (await U.evaluate(() => window.BC_VERSION).catch(() => '0000000000')) !== '0000000000', 15000));
+  const U2 = await nouvellePage('/vieux/');
+  await U2.waitForSelector('#lgEmail'); await U2.focus('#lgEmail'); await U2.type('#lgEmail', 'en-train-de-taper');
+  verif('mise à jour : pendant une saisie, bandeau « Mettre à jour » (pas de rechargement)', await jusqua(async () => !!(await U2.$('#majOk')) && (await U2.inputValue('#lgEmail')) === 'en-train-de-taper', 15000));
+  await U2.click('#majOk');
+  verif('mise à jour : un toucher sur le bandeau charge la nouvelle version', await jusqua(async () => (await U2.evaluate(() => window.BC_VERSION).catch(() => '0000000000')) !== '0000000000', 15000));
   for(const [nom, p] of [['Alice', A], ['Carole', C], ['Bob', B], ['Origine', O], ['Essai', E], ['Bascule', V]]) verif('aucune erreur JS (' + nom + ')', !p.errs.length, p.errs.join(' | '));
   await browser.close(); srv.close(); await env.cleanup();
   console.log('\n' + (n - ko) + ' / ' + n + ' vérifications réussies');
